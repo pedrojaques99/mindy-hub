@@ -45,9 +45,48 @@
             </aside>
             
             <main class="main-content">
+                <!-- Add breadcrumb navigation -->
+                <nav class="breadcrumb-nav" aria-label="Navegação">
+                    <ol class="breadcrumb-list">
+                        <li class="breadcrumb-item">
+                            <a href="#" class="breadcrumb-link home-link">
+                                <img src="assets/icons/icon-home.svg" alt="Início" class="breadcrumb-icon">
+                                <span>Início</span>
+                            </a>
+                        </li>
+                        <!-- Additional breadcrumb items will be added dynamically -->
+                    </ol>
+                </nav>
+
                 <section class="hero-section brazil-wave">
                     <h1 class="hero-title fade-in">Explore recursos <span class="highlight gradient-text">criativos</span></h1>
                     <p class="hero-description fade-in">Descubra ferramentas, tutoriais e recursos para impulsionar seus projetos de design.</p>
+                    
+                    <div class="hero-search-container fade-in">
+                        <form class="hero-search-form" id="hero-search-form">
+                            <div class="hero-search-input-wrapper">
+                                <input type="text" 
+                                       id="hero-search-input" 
+                                       class="hero-search-input" 
+                                       placeholder="Busque por ferramentas, tutoriais, recursos..."
+                                       autocomplete="off"
+                                       aria-label="Buscar recursos">
+                                <button type="submit" class="hero-search-button ripple-effect" aria-label="Buscar">
+                                    <img src="assets/icons/icon-search.svg" alt="Buscar" class="hero-search-icon">
+                                </button>
+                            </div>
+                        </form>
+                        <div class="suggested-tags" id="suggested-tags">
+                            <span class="tag-label">Sugestões:</span>
+                            <div class="tag-list">
+                                <button class="tag" data-tag="design">Design UI/UX</button>
+                                <button class="tag" data-tag="typography">Tipografia</button>
+                                <button class="tag" data-tag="ai">IA Generativa</button>
+                                <button class="tag" data-tag="3d">Modelagem 3D</button>
+                                <button class="tag" data-tag="tools">Ferramentas</button>
+                            </div>
+                        </div>
+                    </div>
                 </section>
                 
                 <section class="bento-section">
@@ -99,15 +138,21 @@
                 <section class="popular-section">
                     <div class="section-header-container brazil-wave">
                         <h2 class="section-header fade-in">Recursos populares</h2>
-                        <a href="#" class="view-all-link btn-hover-effect" data-tooltip="Ver todos os recursos populares">Ver todos</a>
+                        <div class="slider-controls">
+                            <button class="slider-control prev" data-slider="popular" aria-label="Anterior">
+                                <img src="assets/icons/icon-chevron-left.svg" alt="Anterior">
+                            </button>
+                            <button class="slider-control next" data-slider="recent" aria-label="Próximo">
+                                <img src="assets/icons/icon-chevron-right.svg" alt="Próximo">
+                            </button>
+                        </div>
                     </div>
                     
-                    <div id="popular-resources" class="resource-grid stagger-fade-in">
-                        <!-- Recursos populares serão carregados via JavaScript -->
-                        <div class="resource-placeholder-container">
-                            <div class="resource-placeholder pulse"></div>
-                            <div class="resource-placeholder pulse"></div>
-                            <div class="resource-placeholder pulse"></div>
+                    <div class="slider-container">
+                        <div id="popular-resources" class="resources-slider" data-slider="popular">
+                            <div class="slider-track">
+                                <!-- Recursos populares serão carregados via JavaScript -->
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -115,15 +160,21 @@
                 <section class="recent-section">
                     <div class="section-header-container brazil-wave">
                         <h2 class="section-header fade-in">Adicionados recentemente</h2>
-                        <a href="#" class="view-all-link btn-hover-effect" data-tooltip="Ver todos os recursos recentes">Ver todos</a>
+                        <div class="slider-controls">
+                            <button class="slider-control prev" data-slider="recent" aria-label="Anterior">
+                                <img src="assets/icons/icon-chevron-left.svg" alt="Anterior">
+                            </button>
+                            <button class="slider-control next" data-slider="recent" aria-label="Próximo">
+                                <img src="assets/icons/icon-chevron-right.svg" alt="Próximo">
+                            </button>
+                        </div>
                     </div>
                     
-                    <div id="recent-resources" class="resource-grid stagger-fade-in">
-                        <!-- Recursos recentes serão carregados via JavaScript -->
-                        <div class="resource-placeholder-container">
-                            <div class="resource-placeholder pulse"></div>
-                            <div class="resource-placeholder pulse"></div>
-                            <div class="resource-placeholder pulse"></div>
+                    <div class="slider-container">
+                        <div id="recent-resources" class="resources-slider" data-slider="recent">
+                            <div class="slider-track">
+                                <!-- Recursos recentes serão carregados via JavaScript -->
+                            </div>
                         </div>
                     </div>
                 </section>

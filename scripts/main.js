@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeBentoItems();
     initializeModal();
     initializeSearchForm();
+    initializeHeroSearch(); // Add hero search initialization
     loadPopularResources();
     loadRecentResources();
     initializeSidebarResizing();
@@ -37,14 +38,29 @@ async function initializeSidebar() {
         const categories = await loadCategories();
         renderSidebar(categories);
         
-        // Adicionar toggle para mobile
+        // Initialize keyboard navigation
+        initializeSidebarKeyboardNav();
+        
+        // Initialize scroll indicator
+        initializeSidebarScroll();
+        
+        // Add loading states for dynamic content
+        initializeLoadingStates();
+        
+        // Mobile sidebar handling
         const menuToggle = document.getElementById('menu-toggle');
         const sidebar = document.querySelector('.sidebar');
+        const overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        document.body.appendChild(overlay);
         
         if (menuToggle && sidebar) {
+            // Toggle sidebar
             menuToggle.addEventListener('click', () => {
                 sidebar.classList.toggle('active');
                 menuToggle.classList.toggle('menu-open');
+                overlay.classList.toggle('active');
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
                 
                 // Adiciona efeito de slide
                 if (sidebar.classList.contains('active')) {
@@ -53,65 +69,291 @@ async function initializeSidebar() {
                     sidebar.style.animation = 'slideOutLeft 0.3s forwards';
                 }
             });
+            
+            // Close on overlay click
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('active');
+                menuToggle.classList.remove('menu-open');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+            
+            // Handle touch events
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            sidebar.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+            
+            sidebar.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+            
+            function handleSwipe() {
+                const swipeThreshold = 100;
+                const swipeLength = touchEndX - touchStartX;
+                
+                if (swipeLength < -swipeThreshold) {
+                    // Swipe left - close sidebar
+                    sidebar.classList.remove('active');
+                    menuToggle.classList.remove('menu-open');
+                    overlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            }
+            
+            // Close sidebar on window resize if in mobile view
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 992 && sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                    menuToggle.classList.remove('menu-open');
+                    overlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
         }
-
-        // Collapse all subcategories by default
-        const subcategoryLists = document.querySelectorAll('.subcategory-list');
-        subcategoryLists.forEach(list => {
-            list.style.maxHeight = '0';
-            list.style.visibility = 'hidden';
-            list.style.opacity = '0';
+        
+        // Make categories and subcategories focusable
+        const categoryHeaders = document.querySelectorAll('.category-header');
+        const subcategories = document.querySelectorAll('.subcategory');
+        
+        categoryHeaders.forEach(header => {
+            header.setAttribute('tabindex', '0');
+            header.setAttribute('role', 'button');
+            header.setAttribute('aria-expanded', 'false');
         });
         
-        // Add click handlers for category headers
-        const categoryHeaders = document.querySelectorAll('.category-header');
-        categoryHeaders.forEach(header => {
-            header.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const categoryGroup = header.closest('.category-group');
-                const subcategoryList = categoryGroup.querySelector('.subcategory-list');
-                const isActive = categoryGroup.classList.contains('active');
-                
-                // Close all other category groups
-                document.querySelectorAll('.category-group').forEach(group => {
-                    if (group !== categoryGroup) {
-                        group.classList.remove('active');
-                        const groupSubcatList = group.querySelector('.subcategory-list');
-                        if (groupSubcatList) {
-                            groupSubcatList.style.maxHeight = '0';
-                            groupSubcatList.style.visibility = 'hidden';
-                            groupSubcatList.style.opacity = '0';
+        subcategories.forEach(sub => {
+            sub.setAttribute('tabindex', '0');
+            sub.setAttribute('role', 'button');
+        });
+        
+        // Restore active categories
+        try {
+            const savedCategories = localStorage.getItem('mindyHubActiveCategories');
+            if (savedCategories) {
+                const activeCategories = JSON.parse(savedCategories);
+                activeCategories.forEach(categoryId => {
+                    const header = document.querySelector(`.category-header[data-category="${categoryId}"]`);
+                    if (header) {
+                        const categoryGroup = header.closest('.category-group');
+                        if (categoryGroup) {
+                            categoryGroup.classList.add('active');
+                            header.setAttribute('aria-expanded', 'true');
                         }
                     }
                 });
-                
-                // Toggle current category group
-                categoryGroup.classList.toggle('active');
-                
-                if (!isActive && subcategoryList) {
-                    subcategoryList.style.visibility = 'visible';
-                    subcategoryList.style.opacity = '1';
-                    subcategoryList.style.maxHeight = subcategoryList.scrollHeight + 'px';
-                    
-                    // Load category content
-                    const categoryId = header.getAttribute('data-category');
-                    if (categoryId) {
-                        loadCategoryOverview(categoryId);
-                    }
-                } else if (subcategoryList) {
-                    subcategoryList.style.maxHeight = '0';
-                    subcategoryList.style.visibility = 'hidden';
-                    subcategoryList.style.opacity = '0';
-                }
-            });
-        });
+            }
+        } catch (error) {
+            console.warn('Failed to restore category state:', error);
+        }
         
     } catch (error) {
         console.error('Erro ao inicializar sidebar:', error);
         showErrorModal('Erro ao carregar o menu lateral. Por favor, recarregue a página.');
     }
+}
+
+/**
+ * Initialize keyboard navigation for sidebar
+ */
+function initializeSidebarKeyboardNav() {
+    const sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return;
+
+    // Track the last focused element before sidebar opens
+    let lastFocusedElement = null;
+
+    // Store focus when sidebar opens
+    document.getElementById('menu-toggle')?.addEventListener('click', () => {
+        if (!sidebar.classList.contains('active')) {
+            lastFocusedElement = document.activeElement;
+        }
+    });
+
+    sidebar.addEventListener('keydown', (e) => {
+        const target = e.target;
+        const isCategory = target.classList.contains('category-header');
+        const isSubcategory = target.classList.contains('subcategory');
+
+        if (isCategory || isSubcategory) {
+            switch (e.key) {
+                case 'Enter':
+                case ' ':
+                    e.preventDefault();
+                    target.click();
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    navigateVertically(target, 1);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    navigateVertically(target, -1);
+                    break;
+                case 'ArrowRight':
+                    if (isCategory) {
+                        e.preventDefault();
+                        const categoryGroup = target.closest('.category-group');
+                        if (!categoryGroup.classList.contains('active')) {
+                            target.click();
+                            // Focus first subcategory if available
+                            setTimeout(() => {
+                                const firstSubcategory = categoryGroup.querySelector('.subcategory');
+                                if (firstSubcategory) {
+                                    firstSubcategory.focus();
+                                }
+                            }, 100);
+                        }
+                    }
+                    break;
+                case 'ArrowLeft':
+                    if (isSubcategory) {
+                        e.preventDefault();
+                        const categoryHeader = target.closest('.category-group').querySelector('.category-header');
+                        categoryHeader.focus();
+                    } else if (isCategory) {
+                        const categoryGroup = target.closest('.category-group');
+                        if (categoryGroup.classList.contains('active')) {
+                            target.click();
+                        }
+                    }
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    const firstItem = sidebar.querySelector('.category-header');
+                    if (firstItem) firstItem.focus();
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    const items = sidebar.querySelectorAll('.category-header, .subcategory:not(.hidden)');
+                    const lastItem = items[items.length - 1];
+                    if (lastItem) lastItem.focus();
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    if (window.innerWidth <= 992) {
+                        const menuToggle = document.getElementById('menu-toggle');
+                        if (menuToggle) {
+                            menuToggle.click();
+                            // Restore focus to the last focused element
+                            if (lastFocusedElement) {
+                                lastFocusedElement.focus();
+                            }
+                        }
+                    }
+                    break;
+            }
+        }
+    });
+
+    // Trap focus within sidebar when it's open on mobile
+    sidebar.addEventListener('keydown', (e) => {
+        if (window.innerWidth <= 992 && sidebar.classList.contains('active')) {
+            const focusableElements = sidebar.querySelectorAll(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            const firstFocusable = focusableElements[0];
+            const lastFocusable = focusableElements[focusableElements.length - 1];
+
+            if (e.key === 'Tab') {
+                if (e.shiftKey) {
+                    if (document.activeElement === firstFocusable) {
+                        e.preventDefault();
+                        lastFocusable.focus();
+                    }
+                } else {
+                    if (document.activeElement === lastFocusable) {
+                        e.preventDefault();
+                        firstFocusable.focus();
+                    }
+                }
+            }
+        }
+    });
+}
+
+/**
+ * Navigate vertically through sidebar items
+ */
+function navigateVertically(currentElement, direction) {
+    const categoryHeaders = Array.from(document.querySelectorAll('.category-header'));
+    const visibleSubcategories = Array.from(document.querySelectorAll('.category-group.active .subcategory'));
+    const allElements = [...categoryHeaders, ...visibleSubcategories];
+    
+    const currentIndex = allElements.indexOf(currentElement);
+    let nextIndex = currentIndex + direction;
+    
+    // Loop around if we go past the ends
+    if (nextIndex < 0) {
+        nextIndex = allElements.length - 1;
+    } else if (nextIndex >= allElements.length) {
+        nextIndex = 0;
+    }
+    
+    if (allElements[nextIndex]) {
+        allElements[nextIndex].focus();
+        
+        // Ensure the element is in view
+        allElements[nextIndex].scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest'
+        });
+    }
+}
+
+/**
+ * Initialize scroll indicator for sidebar
+ */
+function initializeSidebarScroll() {
+    const sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return;
+
+    const checkScroll = () => {
+        if (sidebar.scrollHeight > sidebar.clientHeight) {
+            sidebar.classList.add('can-scroll');
+        } else {
+            sidebar.classList.remove('can-scroll');
+        }
+    };
+
+    // Check on load
+    checkScroll();
+
+    // Check on scroll
+    sidebar.addEventListener('scroll', () => {
+        if (sidebar.scrollTop + sidebar.clientHeight >= sidebar.scrollHeight - 40) {
+            sidebar.classList.remove('can-scroll');
+        } else {
+            sidebar.classList.add('can-scroll');
+        }
+    });
+
+    // Check on window resize
+    window.addEventListener('resize', checkScroll);
+}
+
+/**
+ * Initialize loading states for dynamic content
+ */
+function initializeLoadingStates() {
+    const categoryHeaders = document.querySelectorAll('.category-header');
+    
+    categoryHeaders.forEach(header => {
+        header.addEventListener('click', () => {
+            // Only add loading state if category is being opened
+            if (!header.closest('.category-group').classList.contains('active')) {
+                header.classList.add('loading');
+                
+                // Remove loading state after content is loaded
+                setTimeout(() => {
+                    header.classList.remove('loading');
+                }, 500); // Adjust timing based on actual content loading
+            }
+        });
+    });
 }
 
 /**
@@ -227,6 +469,10 @@ function renderSidebar(categories) {
         categoryGroup.style.opacity = '0';
         categoryGroup.style.transform = 'translateY(20px)';
         
+        // Count total items in category including subcategories
+        const totalItems = category.subcategories?.reduce((total, sub) => 
+            total + (Array.isArray(sub.items) ? sub.items.length : 0), 0) || 0;
+        
         // Cabeçalho da categoria
         const categoryHeader = document.createElement('div');
         categoryHeader.className = 'category-header';
@@ -234,14 +480,13 @@ function renderSidebar(categories) {
         categoryHeader.innerHTML = `
             <img src="assets/icons/${category.icon}" alt="${category.title}">
             <span>${category.title}</span>
+            <span class="category-count">${totalItems}</span>
+            <div class="expand-indicator"></div>
         `;
         
         // Lista de subcategorias
         const subcategoryList = document.createElement('div');
         subcategoryList.className = 'subcategory-list';
-        subcategoryList.style.maxHeight = '0';
-        subcategoryList.style.visibility = 'hidden';
-        subcategoryList.style.opacity = '0';
         
         // Adiciona subcategorias se existirem
         if (Array.isArray(category.subcategories)) {
@@ -251,11 +496,15 @@ function renderSidebar(categories) {
                     return;
                 }
 
+                const itemCount = Array.isArray(subcategory.items) ? subcategory.items.length : 0;
                 const subcategoryItem = document.createElement('div');
                 subcategoryItem.className = 'subcategory';
                 subcategoryItem.setAttribute('data-category', category.id);
                 subcategoryItem.setAttribute('data-subcategory', subcategory.id);
-                subcategoryItem.textContent = subcategory.title;
+                subcategoryItem.innerHTML = `
+                    <span>${subcategory.title}</span>
+                    <span class="category-count">${itemCount}</span>
+                `;
                 
                 // Click event para subcategorias
                 subcategoryItem.addEventListener('click', (e) => {
@@ -278,6 +527,47 @@ function renderSidebar(categories) {
             });
         }
         
+        // Click event for category headers
+        categoryHeader.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const categoryGroup = categoryHeader.closest('.category-group');
+            const wasActive = categoryGroup.classList.contains('active');
+            
+            // Close all other categories first
+            document.querySelectorAll('.category-group').forEach(group => {
+                if (group !== categoryGroup) {
+                    group.classList.remove('active');
+                    const header = group.querySelector('.category-header');
+                    if (header) {
+                        header.setAttribute('aria-expanded', 'false');
+                    }
+                }
+            });
+            
+            // Toggle current category
+            categoryGroup.classList.toggle('active');
+            categoryHeader.setAttribute('aria-expanded', !wasActive);
+            
+            // Save state
+            try {
+                const activeCategories = [];
+                document.querySelectorAll('.category-group.active').forEach(group => {
+                    const header = group.querySelector('.category-header');
+                    if (header) {
+                        const categoryId = header.getAttribute('data-category');
+                        if (categoryId) {
+                            activeCategories.push(categoryId);
+                        }
+                    }
+                });
+                localStorage.setItem('mindyHubActiveCategories', JSON.stringify(activeCategories));
+            } catch (error) {
+                console.warn('Failed to save category state:', error);
+            }
+        });
+        
         categoryGroup.appendChild(categoryHeader);
         categoryGroup.appendChild(subcategoryList);
         sidebarNav.appendChild(categoryGroup);
@@ -288,6 +578,24 @@ function renderSidebar(categories) {
             categoryGroup.style.opacity = '1';
             categoryGroup.style.transform = 'translateY(0)';
         }, 100 + (index * 50));
+    });
+    
+    // Add hover effect for category headers
+    const categoryHeaders = document.querySelectorAll('.category-header');
+    categoryHeaders.forEach(header => {
+        header.addEventListener('mouseenter', () => {
+            const expandIndicator = header.querySelector('.expand-indicator');
+            if (expandIndicator) {
+                expandIndicator.style.transform = 'scale(1.2)';
+            }
+        });
+        
+        header.addEventListener('mouseleave', () => {
+            const expandIndicator = header.querySelector('.expand-indicator');
+            if (expandIndicator) {
+                expandIndicator.style.transform = 'scale(1)';
+            }
+        });
     });
 }
 
@@ -553,26 +861,19 @@ function initializeTooltips() {
  * Restore user preferences 
  */
 function restoreUserPreferences() {
-    // Check for any saved state
     try {
         const savedState = localStorage.getItem('mindyHubState');
         if (savedState) {
             const state = JSON.parse(savedState);
             
-            // Only restore last category if sidebar is ready
-            if (state.lastCategory) {
-                const sidebar = document.querySelector('.sidebar');
-                const categoryExists = document.querySelector(`[data-category="${state.lastCategory}"]`);
-                
-                if (sidebar && categoryExists) {
-                    // We might want to delay this to ensure everything is loaded
-                    setTimeout(() => {
-                        loadCategoryPage(state.lastCategory);
-                    }, 500);
-                } else {
-                    console.log('Sidebar or category not ready, skipping state restoration');
-                }
+            // Only restore visual preferences like theme, language, etc.
+            // Do not automatically load last category
+            if (state.theme) {
+                document.documentElement.setAttribute('data-theme', state.theme);
             }
+            
+            // Clear navigation state to ensure fresh start
+            localStorage.removeItem('lastCategory');
         }
     } catch (error) {
         console.error('Error restoring state:', error);
@@ -580,58 +881,161 @@ function restoreUserPreferences() {
 }
 
 /**
- * Carrega recursos populares para a seção de destaque
+ * Initialize sliders
+ */
+function initializeSliders() {
+    const sliders = document.querySelectorAll('.resources-slider');
+    
+    sliders.forEach(slider => {
+        const track = slider.querySelector('.slider-track');
+        const sliderId = slider.getAttribute('data-slider');
+        const prevBtn = document.querySelector(`.slider-control.prev[data-slider="${sliderId}"]`);
+        const nextBtn = document.querySelector(`.slider-control.next[data-slider="${sliderId}"]`);
+        
+        if (!track || !prevBtn || !nextBtn) return;
+        
+        let position = 0;
+        let isDragging = false;
+        let startX;
+        let scrollLeft;
+        
+        // Update button states
+        const updateButtons = () => {
+            prevBtn.disabled = position === 0;
+            nextBtn.disabled = position >= track.scrollWidth - track.clientWidth;
+        };
+        
+        // Scroll to position with smooth animation
+        const scrollTo = (pos) => {
+            track.style.transform = `translateX(${pos}px)`;
+            position = pos;
+            updateButtons();
+        };
+        
+        // Handle next/prev clicks
+        nextBtn.addEventListener('click', () => {
+            const itemWidth = 316; // 300px width + 16px gap
+            const newPosition = Math.max(
+                position - itemWidth,
+                -(track.scrollWidth - track.clientWidth)
+            );
+            scrollTo(newPosition);
+        });
+        
+        prevBtn.addEventListener('click', () => {
+            const itemWidth = 316; // 300px width + 16px gap
+            const newPosition = Math.min(position + itemWidth, 0);
+            scrollTo(newPosition);
+        });
+        
+        // Mouse drag functionality
+        track.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.pageX - track.offsetLeft;
+            scrollLeft = position;
+            track.style.cursor = 'grabbing';
+        });
+        
+        track.addEventListener('mouseleave', () => {
+            isDragging = false;
+            track.style.cursor = 'grab';
+        });
+        
+        track.addEventListener('mouseup', () => {
+            isDragging = false;
+            track.style.cursor = 'grab';
+        });
+        
+        track.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            e.preventDefault();
+            const x = e.pageX - track.offsetLeft;
+            const walk = (x - startX) * 1.5;
+            const newPosition = Math.min(0, Math.max(scrollLeft + walk, 
+                -(track.scrollWidth - track.clientWidth)));
+            
+            scrollTo(newPosition);
+        });
+        
+        // Touch functionality
+        track.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            startX = e.touches[0].pageX - track.offsetLeft;
+            scrollLeft = position;
+        }, { passive: true });
+        
+        track.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+        
+        track.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            const x = e.touches[0].pageX - track.offsetLeft;
+            const walk = (x - startX) * 1.5;
+            const newPosition = Math.min(0, Math.max(scrollLeft + walk, 
+                -(track.scrollWidth - track.clientWidth)));
+            
+            scrollTo(newPosition);
+        }, { passive: true });
+        
+        // Initial button state
+        updateButtons();
+    });
+}
+
+/**
+ * Carrega recursos populares
  */
 async function loadPopularResources() {
     try {
-        const popularGrid = document.getElementById('popular-grid');
-        if (!popularGrid) return;
+        const popularSlider = document.querySelector('#popular-resources .slider-track');
+        if (!popularSlider) return;
         
         // Limpar conteúdo atual
-        popularGrid.innerHTML = '';
+        popularSlider.innerHTML = '';
         
         // Simular carregamento de dados do servidor
-        // Em um ambiente real, isso seria uma chamada de API
         const popularItems = [
             {
                 title: "Adobe Illustrator",
                 description: "Software de design vetorial profissional para criação de logotipos, ilustrações e gráficos vetoriais.",
                 category: "tools",
-                subcategory: "design",
                 url: "https://www.adobe.com/products/illustrator.html",
-                tags: ["vetorial", "design", "ilustração"]
+                date: "2024-03-15"
             },
             {
                 title: "Figma",
                 description: "Plataforma de design de interface colaborativa baseada na web para prototipagem de alta fidelidade.",
                 category: "tools",
-                subcategory: "ux",
                 url: "https://www.figma.com/",
-                tags: ["ui", "ux", "protótipo"]
+                date: "2024-03-14"
             },
             {
                 title: "Google Fonts",
                 description: "Biblioteca de fontes tipográficas gratuitas e de código aberto para uso em seus projetos.",
                 category: "typography",
-                subcategory: "fonts",
                 url: "https://fonts.google.com/",
-                tags: ["tipografia", "web", "gratuito"]
+                date: "2024-03-13"
             },
             {
                 title: "Midjourney",
                 description: "Ferramenta de IA gerativa para criar imagens, arte digital e conceitos visuais a partir de prompts de texto.",
                 category: "ai",
-                subcategory: "generative",
                 url: "https://www.midjourney.com/",
-                tags: ["ia", "arte", "imagem"]
+                date: "2024-03-12"
             }
         ];
         
-        // Criar cards de recursos populares
+        // Criar slides
         popularItems.forEach(item => {
-            const card = createResourceCard(item);
-            popularGrid.appendChild(card);
+            const slide = createSliderItem(item);
+            popularSlider.appendChild(slide);
         });
+        
+        // Initialize slider after content is loaded
+        initializeSliders();
         
     } catch (error) {
         console.error('Erro ao carregar recursos populares:', error);
@@ -639,58 +1043,56 @@ async function loadPopularResources() {
 }
 
 /**
- * Carrega recursos recentemente adicionados
+ * Carrega recursos recentes
  */
 async function loadRecentResources() {
     try {
-        const recentGrid = document.getElementById('recent-grid');
-        if (!recentGrid) return;
+        const recentSlider = document.querySelector('#recent-resources .slider-track');
+        if (!recentSlider) return;
         
         // Limpar conteúdo atual
-        recentGrid.innerHTML = '';
+        recentSlider.innerHTML = '';
         
         // Simular carregamento de dados do servidor
-        // Em um ambiente real, isso seria uma chamada de API
         const recentItems = [
             {
                 title: "Blender 3D",
-                description: "Software gratuito e de código aberto para modelagem, animação, texturização, renderização e edição de vídeo 3D.",
+                description: "Software gratuito e de código aberto para modelagem, animação, texturização e renderização 3D.",
                 category: "3d",
-                subcategory: "modeling",
                 url: "https://www.blender.org/",
-                tags: ["3d", "modelagem", "gratuito"]
+                date: "2024-03-15"
             },
             {
                 title: "ChatGPT",
                 description: "Modelo de linguagem de IA da OpenAI para geração de texto, conversação e assistência criativa.",
                 category: "ai",
-                subcategory: "text",
                 url: "https://chat.openai.com/",
-                tags: ["ia", "texto", "assistente"]
+                date: "2024-03-14"
             },
             {
                 title: "Dribbble",
-                description: "Comunidade de design online para descobrir inspiração e conectar-se com designers de todo o mundo.",
+                description: "Comunidade de design online para descobrir inspiração e conectar-se com designers.",
                 category: "design",
-                subcategory: "inspiration",
                 url: "https://dribbble.com/",
-                tags: ["inspiração", "portfolio", "comunidade"]
+                date: "2024-03-13"
             },
             {
                 title: "Type Scale",
                 description: "Ferramenta para criar escalas tipográficas harmoniosas baseadas em matemática.",
                 category: "typography",
-                subcategory: "tools",
                 url: "https://type-scale.com/",
-                tags: ["tipografia", "ferramenta", "web"]
+                date: "2024-03-12"
             }
         ];
         
-        // Criar cards de recursos recentes
+        // Criar slides
         recentItems.forEach(item => {
-            const card = createResourceCard(item);
-            recentGrid.appendChild(card);
+            const slide = createSliderItem(item);
+            recentSlider.appendChild(slide);
         });
+        
+        // Initialize slider after content is loaded
+        initializeSliders();
         
     } catch (error) {
         console.error('Erro ao carregar recursos recentes:', error);
@@ -698,26 +1100,35 @@ async function loadRecentResources() {
 }
 
 /**
- * Cria um card de recurso
+ * Creates a slider item
  */
-function createResourceCard(item) {
-    const tagsHTML = item.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+function createSliderItem(item) {
+    const slide = document.createElement('div');
+    slide.className = 'slider-item';
+    slide.setAttribute('data-url', item.url);
     
-    const card = document.createElement('div');
-    card.className = 'resource-card';
-    card.innerHTML = `
-        <div class="category">${item.category}</div>
-        <h3>${item.title}</h3>
-        <p>${item.description}</p>
-        <div class="resource-tags">${tagsHTML}</div>
+    const date = new Date(item.date);
+    const formattedDate = new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    }).format(date);
+    
+    slide.innerHTML = `
+        <h3 class="slider-item-title">${item.title}</h3>
+        <p class="slider-item-description">${item.description}</p>
+        <div class="slider-item-meta">
+            <span class="slider-item-category">${item.category}</span>
+            <span class="slider-item-date">${formattedDate}</span>
+        </div>
     `;
     
-    // Adicionar evento de clique para abrir o URL
-    card.addEventListener('click', () => {
+    // Add click handler
+    slide.addEventListener('click', () => {
         window.open(item.url, '_blank', 'noopener');
     });
     
-    return card;
+    return slide;
 }
 
 /**
@@ -1099,6 +1510,47 @@ function initializeModalDraggingAndResizing() {
 }
 
 /**
+ * Updates the breadcrumb navigation
+ */
+function updateBreadcrumbs(category = null, subcategory = null) {
+    const breadcrumbList = document.querySelector('.breadcrumb-list');
+    if (!breadcrumbList) return;
+    
+    // Clear existing dynamic breadcrumbs
+    const items = breadcrumbList.querySelectorAll('.breadcrumb-item:not(:first-child)');
+    items.forEach(item => item.remove());
+    
+    // Add category breadcrumb if present
+    if (category) {
+        const categoryItem = document.createElement('li');
+        categoryItem.className = 'breadcrumb-item';
+        categoryItem.innerHTML = `
+            <a href="#" class="breadcrumb-link" data-category="${category.id}">
+                <img src="assets/icons/${category.icon}" alt="${category.title}" class="breadcrumb-icon">
+                <span>${category.title}</span>
+            </a>
+        `;
+        breadcrumbList.appendChild(categoryItem);
+        
+        // Add click handler
+        categoryItem.querySelector('.breadcrumb-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            loadCategoryPage(category.id);
+        });
+    }
+    
+    // Add subcategory breadcrumb if present
+    if (subcategory) {
+        const subcategoryItem = document.createElement('li');
+        subcategoryItem.className = 'breadcrumb-item';
+        subcategoryItem.innerHTML = `
+            <span class="breadcrumb-text">${subcategory.title}</span>
+        `;
+        breadcrumbList.appendChild(subcategoryItem);
+    }
+}
+
+/**
  * Carrega a página específica de uma categoria
  */
 async function loadCategoryPage(categoryId) {
@@ -1112,6 +1564,9 @@ async function loadCategoryPage(categoryId) {
             throw new Error(`Dados da categoria ${categoryId} não encontrados`);
         }
 
+        // Update breadcrumbs first
+        updateBreadcrumbs(categoryData);
+
         const template = document.getElementById('category-page-template');
         if (!template) {
             throw new Error('Template da página de categoria não encontrado');
@@ -1123,8 +1578,12 @@ async function loadCategoryPage(categoryId) {
             throw new Error('Elemento main-content não encontrado');
         }
 
-        // Clear existing content and ensure proper structure
+        // Preserve breadcrumb navigation
+        const breadcrumbNav = mainContent.querySelector('.breadcrumb-nav');
         mainContent.innerHTML = '';
+        if (breadcrumbNav) {
+            mainContent.appendChild(breadcrumbNav);
+        }
         
         // Create new content area with proper structure
         const contentArea = document.createElement('div');
@@ -1356,3 +1815,130 @@ styleSheet.textContent = `
     }
 `;
 document.head.appendChild(styleSheet);
+
+// Add home page state management
+function showHomePage() {
+    const mainContent = document.querySelector('.main-content');
+    if (!mainContent) return;
+    
+    // Clear any existing category content
+    mainContent.innerHTML = `
+        <section class="hero-section brazil-wave">
+            <h1 class="hero-title fade-in">Explore recursos <span class="highlight gradient-text">criativos</span></h1>
+            <p class="hero-description fade-in">Descubra ferramentas, tutoriais e recursos para impulsionar seus projetos de design.</p>
+        </section>
+        
+        <section class="bento-section">
+            <h2 class="section-header fade-in">Explore por categoria</h2>
+            <div class="bento-grid stagger-fade-in">
+                <!-- Bento grid items will be loaded here -->
+            </div>
+        </section>
+    `;
+    
+    // Reset sidebar state
+    document.querySelectorAll('.category-group').forEach(group => {
+        group.classList.remove('active');
+    });
+    
+    // Clear navigation state
+    localStorage.removeItem('lastCategory');
+    
+    // Initialize bento items
+    initializeBentoItems();
+}
+
+// Add home button click handler
+document.querySelector('.logo').addEventListener('click', (e) => {
+    e.preventDefault();
+    showHomePage();
+});
+
+// Add home link click handler
+document.addEventListener('DOMContentLoaded', () => {
+    const homeLink = document.querySelector('.home-link');
+    if (homeLink) {
+        homeLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showHomePage();
+        });
+    }
+});
+
+/**
+ * Initialize hero search functionality
+ */
+function initializeHeroSearch() {
+    const heroSearchForm = document.getElementById('hero-search-form');
+    const heroSearchInput = document.getElementById('hero-search-input');
+    const suggestedTags = document.getElementById('suggested-tags');
+    
+    if (!heroSearchForm || !heroSearchInput || !suggestedTags) return;
+    
+    // Handle tag clicks
+    suggestedTags.addEventListener('click', (e) => {
+        const tagButton = e.target.closest('.tag');
+        if (!tagButton) return;
+        
+        const tagValue = tagButton.textContent;
+        heroSearchInput.value = tagValue;
+        heroSearchInput.focus();
+        
+        // Add visual feedback
+        tagButton.classList.add('active');
+        setTimeout(() => tagButton.classList.remove('active'), 200);
+    });
+    
+    // Handle form submission
+    heroSearchForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const query = heroSearchInput.value.trim();
+        
+        if (query.length > 0) {
+            performSearch(query);
+            
+            // Add search animation
+            heroSearchForm.classList.add('searching');
+            setTimeout(() => heroSearchForm.classList.remove('searching'), 300);
+        }
+    });
+    
+    // Add input effects
+    heroSearchInput.addEventListener('focus', () => {
+        heroSearchForm.classList.add('focused');
+    });
+    
+    heroSearchInput.addEventListener('blur', () => {
+        heroSearchForm.classList.remove('focused');
+    });
+    
+    // Dynamic tag suggestions based on input
+    let searchTimeout;
+    heroSearchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        
+        const query = heroSearchInput.value.trim().toLowerCase();
+        const tags = suggestedTags.querySelectorAll('.tag');
+        
+        if (query.length > 0) {
+            searchTimeout = setTimeout(() => {
+                tags.forEach(tag => {
+                    const tagText = tag.textContent.toLowerCase();
+                    if (tagText.includes(query)) {
+                        tag.style.opacity = '1';
+                        tag.style.transform = 'scale(1.05)';
+                    } else {
+                        tag.style.opacity = '0.5';
+                        tag.style.transform = 'scale(1)';
+                    }
+                });
+            }, 100);
+        } else {
+            // Reset all tags
+            tags.forEach(tag => {
+                tag.style.opacity = '1';
+                tag.style.transform = 'scale(1)';
+            });
+        }
+    });
+}

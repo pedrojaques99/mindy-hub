@@ -1,0 +1,122 @@
+{
+  "id": "ai",
+  "title": "Inteligência Artificial",
+  "icon": "icon-ai.svg",
+  "description": "Ferramentas de IA para potencializar seu fluxo de trabalho criativo.",
+  "subcategories": [
+    {
+      "id": "midjourney",
+      "title": "Midjourney",
+      "items": [
+        {
+          "title": "Midjourney",
+          "description": "Gerador de imagens baseado em IA acessível via Discord, ideal para ilustrações e conceitos artísticos.",
+          "url": "https://www.midjourney.com/",
+          "tags": ["imagens", "arte", "premium"]
+        },
+        {
+          "title": "Guia de Prompts Midjourney",
+          "description": "Guia detalhado para criação de prompts eficazes no Midjourney.",
+          "url": "https://docs.midjourney.com/docs/prompt-guide",
+          "tags": ["guia", "prompts", "tutorial"]
+        },
+        {
+          "title": "Midjourney Showcase",
+          "description": "Galeria de imagens criadas com Midjourney para inspiração.",
+          "url": "https://www.midjourney.com/showcase/",
+          "tags": ["galeria", "inspiração", "exemplos"]
+        }
+      ]
+    },
+    {
+      "id": "dall-e",
+      "title": "DALL-E",
+      "items": [
+        {
+          "title": "DALL-E by OpenAI",
+          "description": "Gerador de imagens da OpenAI capaz de criar imagens detalhadas a partir de descrições textuais.",
+          "url": "https://openai.com/dall-e-3",
+          "tags": ["imagens", "OpenAI", "premium"]
+        },
+        {
+          "title": "DALL-E API",
+          "description": "Documentação da API para integrar DALL-E em seus próprios aplicativos e workflows.",
+          "url": "https://platform.openai.com/docs/guides/images",
+          "tags": ["API", "integração", "desenvolvimento"]
+        }
+      ]
+    },
+    {
+      "id": "chatgpt",
+      "title": "ChatGPT",
+      "items": [
+        {
+          "title": "ChatGPT",
+          "description": "Assistente de IA conversacional da OpenAI para diversos usos, incluindo redação e ideação criativa.",
+          "url": "https://chat.openai.com/",
+          "tags": ["texto", "assistente", "freemium"]
+        },
+        {
+          "title": "Prompts para Designers",
+          "description": "Coleção de prompts eficazes para designers usarem com ChatGPT.",
+          "url": "https://www.designprompts.ai/",
+          "tags": ["prompts", "design", "criatividade"]
+        }
+      ]
+    },
+    {
+      "id": "stable-diffusion",
+      "title": "Stable Diffusion",
+      "items": [
+        {
+          "title": "Stable Diffusion",
+          "description": "Modelo de geração de imagens open-source que pode ser executado localmente ou via serviços web.",
+          "url": "https://stability.ai/",
+          "tags": ["open-source", "imagens", "local"]
+        },
+        {
+          "title": "DreamStudio",
+          "description": "Interface web para Stable Diffusion desenvolvida pela Stability AI.",
+          "url": "https://dreamstudio.ai/",
+          "tags": ["interface", "web", "freemium"]
+        },
+        {
+          "title": "Automatic1111 WebUI",
+          "description": "Interface gráfica popular para executar Stable Diffusion localmente.",
+          "url": "https://github.com/AUTOMATIC1111/stable-diffusion-webui",
+          "tags": ["open-source", "local", "instalação"]
+        }
+      ]
+    },
+    {
+      "id": "ferramentas-design",
+      "title": "Ferramentas para Design",
+      "items": [
+        {
+          "title": "Galileo AI",
+          "description": "Assistente de design baseado em IA que pode criar interfaces de usuário a partir de descrições.",
+          "url": "https://www.usegalileo.ai/",
+          "tags": ["UI/UX", "interfaces", "protótipo"]
+        },
+        {
+          "title": "Colormind",
+          "description": "Gerador de paletas de cores que utiliza aprendizado profundo.",
+          "url": "http://colormind.io/",
+          "tags": ["cores", "paletas", "gratuito"]
+        },
+        {
+          "title": "Remove.bg",
+          "description": "Remove automaticamente fundos de imagens usando IA.",
+          "url": "https://www.remove.bg/",
+          "tags": ["edição", "freemium", "produtividade"]
+        },
+        {
+          "title": "Runway ML",
+          "description": "Suite de ferramentas de IA para criadores, incluindo edição de vídeo e geração de conteúdo.",
+          "url": "https://runwayml.com/",
+          "tags": ["vídeo", "edição", "premium"]
+        }
+      ]
+    }
+  ]
+}

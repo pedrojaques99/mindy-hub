@@ -1,0 +1,80 @@
+{
+    "id": "3d",
+    "title": "Design 3D",
+    "icon": "icon-3d.svg",
+    "description": "Explore ferramentas, recursos e tutoriais para modelagem, renderização e animação 3D para seus projetos criativos.",
+    "subcategories": [
+        {
+            "id": "modeling",
+            "title": "Modelagem 3D",
+            "items": [
+                {
+                    "title": "Blender",
+                    "description": "Software gratuito e de código aberto para modelagem, animação, texturização, composição, renderização e edição de vídeo.",
+                    "url": "https://www.blender.org/",
+                    "tags": ["gratuito", "modelagem", "animação"]
+                },
+                {
+                    "title": "Cinema 4D",
+                    "description": "Software profissional de modelagem 3D, animação e renderização popular na indústria criativa.",
+                    "url": "https://www.maxon.net/cinema-4d",
+                    "tags": ["pago", "modelagem", "animação"]
+                },
+                {
+                    "title": "Maya",
+                    "description": "Software líder de mercado para criação de personagens, ambientes e efeitos visuais em filmes e jogos.",
+                    "url": "https://www.autodesk.com/products/maya/",
+                    "tags": ["pago", "modelagem", "animação", "personagens"]
+                }
+            ]
+        },
+        {
+            "id": "rendering",
+            "title": "Renderização",
+            "items": [
+                {
+                    "title": "V-Ray",
+                    "description": "Motor de renderização fotorrealista usado em arquitetura, design e efeitos visuais.",
+                    "url": "https://www.chaosgroup.com/vray",
+                    "tags": ["pago", "renderização", "fotorrealismo"]
+                },
+                {
+                    "title": "Octane Render",
+                    "description": "Motor de renderização baseado em GPU que oferece velocidade e qualidade excepcionais.",
+                    "url": "https://home.otoy.com/render/octane-render/",
+                    "tags": ["pago", "renderização", "GPU"]
+                },
+                {
+                    "title": "Cycles",
+                    "description": "Motor de renderização físicamente correto integrado ao Blender.",
+                    "url": "https://docs.blender.org/manual/en/latest/render/cycles/",
+                    "tags": ["gratuito", "renderização", "Blender"]
+                }
+            ]
+        },
+        {
+            "id": "texturing",
+            "title": "Texturas e Materiais",
+            "items": [
+                {
+                    "title": "Substance 3D",
+                    "description": "Suite de ferramentas para criação de texturas e materiais 3D fotorrealistas.",
+                    "url": "https://www.adobe.com/products/substance3d.html",
+                    "tags": ["pago", "texturas", "materiais"]
+                },
+                {
+                    "title": "Quixel Megascans",
+                    "description": "Biblioteca de materiais e ativos 3D fotorrealistas para seus projetos.",
+                    "url": "https://quixel.com/megascans",
+                    "tags": ["gratuito com Unreal", "texturas", "assets"]
+                },
+                {
+                    "title": "Poliigon",
+                    "description": "Texturas e materiais de alta qualidade para renderização 3D.",
+                    "url": "https://www.poliigon.com/",
+                    "tags": ["pago", "texturas", "materiais"]
+                }
+            ]
+        }
+    ]
+}

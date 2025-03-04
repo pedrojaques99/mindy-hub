@@ -1,0 +1,98 @@
+{
+  "id": "typography",
+  "title": "Fontes e Tipografias",
+  "icon": "icon-typography.svg",
+  "description": "Explore recursos e ferramentas para tipografia, fontes e design textual.",
+  "subcategories": [
+    {
+      "id": "google-fonts",
+      "title": "Google Fonts",
+      "items": [
+        {
+          "title": "Google Fonts",
+          "description": "Biblioteca de fontes gratuitas do Google com mais de 1000 famílias de fontes otimizadas para web.",
+          "url": "https://fonts.google.com/",
+          "tags": ["gratuito", "web", "fontes"]
+        },
+        {
+          "title": "Fontsie",
+          "description": "Explore e visualize todas as fontes do Google Fonts com amostras personalizáveis.",
+          "url": "https://fontsie.app/",
+          "tags": ["gratuito", "visualização", "comparação"]
+        },
+        {
+          "title": "Google Fonts Knowledge",
+          "description": "Artigos, guias e tutoriais sobre tipografia e uso efetivo de fontes.",
+          "url": "https://fonts.google.com/knowledge",
+          "tags": ["gratuito", "educação", "tutoriais"]
+        }
+      ]
+    },
+    {
+      "id": "adobe-fonts",
+      "title": "Adobe Fonts",
+      "items": [
+        {
+          "title": "Adobe Fonts",
+          "description": "Biblioteca premium de fontes incluída na assinatura Creative Cloud.",
+          "url": "https://fonts.adobe.com/",
+          "tags": ["premium", "creative cloud", "profissional"]
+        },
+        {
+          "title": "Adobe Font Pack Pro",
+          "description": "Pacotes selecionados de fontes Adobe otimizados para diferentes tipos de projetos.",
+          "url": "https://fonts.adobe.com/collections",
+          "tags": ["premium", "coleções", "profissional"]
+        }
+      ]
+    },
+    {
+      "id": "combinacoes",
+      "title": "Combinações",
+      "items": [
+        {
+          "title": "Fontjoy",
+          "description": "Gere combinações harmoniosas de fontes usando aprendizado de máquina.",
+          "url": "https://fontjoy.com/",
+          "tags": ["gratuito", "ferramenta", "IA"]
+        },
+        {
+          "title": "Fontpair",
+          "description": "Coleção de pares de fontes testados e aprovados para seus projetos.",
+          "url": "https://www.fontpair.co/",
+          "tags": ["gratuito", "pares", "inspiração"]
+        },
+        {
+          "title": "TypeWolf",
+          "description": "Inspiração para escolhas tipográficas com exemplos do mundo real.",
+          "url": "https://www.typewolf.com/",
+          "tags": ["inspiração", "tendências", "exemplos"]
+        }
+      ]
+    },
+    {
+      "id": "tipografia-web",
+      "title": "Tipografia Web",
+      "items": [
+        {
+          "title": "Practical Typography",
+          "description": "Guia completo e gratuito de tipografia prática para web e impressão.",
+          "url": "https://practicaltypography.com/",
+          "tags": ["gratuito", "guia", "educação"]
+        },
+        {
+          "title": "Type Scale",
+          "description": "Ferramenta visual para criar escalas tipográficas harmônicas.",
+          "url": "https://type-scale.com/",
+          "tags": ["gratuito", "ferramenta", "hierarquia"]
+        },
+        {
+          "title": "Wakamai Fondue",
+          "description": "Verifique quais recursos uma fonte possui, como variáveis, ligaduras e alternativas.",
+          "url": "https://wakamaifondue.com/",
+          "tags": ["gratuito", "análise", "ferramenta"]
+        }
+      ]
+    }
+  ]
+}

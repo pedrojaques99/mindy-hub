@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mindy® Hub | Biblioteca Digital</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header com branding e search -->
+        <header class="app-header">
+            <div class="logo-container">
+                <h1 class="logo">Mindy<span class="logo-registered">®</span> Hub</h1>
+            </div>
+            <div class="search-container">
+                <form id="search-form" class="search-form">
+                    <div class="search-input-wrapper">
+                        <img src="assets/icons/icon-search.svg" alt="Pesquisar" class="search-icon">
+                        <input type="text" id="search-input" class="search-input" placeholder="Buscar recursos...">
+                    </div>
+                </form>
+            </div>
+        </header>
+
+        <!-- Main content -->
+        <main class="main-content">
+            <!-- Sidebar navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Categorias</h2>
+                    <button id="menu-toggle" class="menu-toggle">
+                        <span class="menu-icon"></span>
+                    </button>
+                </div>
+                <nav class="sidebar-nav" id="sidebar-nav">
+                    <!-- Populated via JavaScript -->
+                </nav>
+            </aside>
+
+            <!-- Content area -->
+            <div class="content-area">
+                <!-- Hero section - Bento grid showcase -->
+                <section class="hero-section">
+                    <div class="bento-grid">
+                        <div class="bento-item featured-item" data-category="typography">
+                            <div class="bento-item-icon">
+                                <img src="assets/icons/icon-typography.svg" alt="Tipografia">
+                            </div>
+                            <h3>Fontes e Tipografias</h3>
+                            <p>Explore recursos tipográficos e combinações de fontes para seus projetos.</p>
+                        </div>
+                        <div class="bento-item" data-category="design">
+                            <div class="bento-item-icon">
+                                <img src="assets/icons/icon-design.svg" alt="Design">
+                            </div>
+                            <h3>Design</h3>
+                            <p>UI/UX, branding e design thinking para elevar suas criações.</p>
+                        </div>
+                        <div class="bento-item" data-category="tools">
+                            <div class="bento-item-icon">
+                                <img src="assets/icons/icon-tools.svg" alt="Ferramentas">
+                            </div>
+                            <h3>Ferramentas</h3>
+                            <p>Photoshop, Illustrator, Figma e mais para seu fluxo de trabalho.</p>
+                        </div>
+                        <div class="bento-item" data-category="ai">
+                            <div class="bento-item-icon">
+                                <img src="assets/icons/icon-ai.svg" alt="IA">
+                            </div>
+                            <h3>Inteligência Artificial</h3>
+                            <p>Midjourney, DALL-E, ChatGPT e outras ferramentas de IA para designers.</p>
+                        </div>
+                        <div class="bento-item wide-item" data-category="3d">
+                            <div class="bento-item-icon">
+                                <img src="assets/icons/icon-3d.svg" alt="3D">
+                            </div>
+                            <h3>Design 3D</h3>
+                            <p>Ferramentas e recursos para modelagem, renderização e animação 3D.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Popular resources section -->
+                <section class="popular-section">
+                    <div class="section-header">
+                        <h2>Recursos em Destaque</h2>
+                        <div class="section-header-line"></div>
+                    </div>
+                    <div class="popular-grid" id="popular-grid">
+                        <!-- Populated via JavaScript -->
+                    </div>
+                </section>
+
+                <!-- Recent additions -->
+                <section class="recent-section">
+                    <div class="section-header">
+                        <h2>Adicionados Recentemente</h2>
+                        <div class="section-header-line"></div>
+                    </div>
+                    <div class="recent-grid" id="recent-grid">
+                        <!-- Populated via JavaScript -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for content display -->
+    <div id="modal" class="modal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title">Título do Recurso</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-content">
+                <!-- Dynamic content here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="scripts/main.js"></script>
+</body>
+</html>

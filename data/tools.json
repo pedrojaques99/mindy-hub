@@ -1,0 +1,134 @@
+{
+  "id": "tools",
+  "title": "Ferramentas",
+  "icon": "icon-tools.svg",
+  "description": "Software e aplicativos essenciais para design e criação digital.",
+  "subcategories": [
+    {
+      "id": "photoshop",
+      "title": "Photoshop",
+      "items": [
+        {
+          "title": "Adobe Photoshop",
+          "description": "Software líder para edição e composição de imagens, manipulação fotográfica e design gráfico.",
+          "url": "https://www.adobe.com/products/photoshop.html",
+          "tags": ["premium", "edição", "imagens"]
+        },
+        {
+          "title": "Photoshop Café",
+          "description": "Tutoriais gratuitos e recursos para Photoshop em todos os níveis.",
+          "url": "https://photoshopcafe.com/tutorials/",
+          "tags": ["tutoriais", "gratuito", "aprendizado"]
+        },
+        {
+          "title": "PSD Box",
+          "description": "Modelos, mockups e recursos premium para Photoshop.",
+          "url": "https://psdbox.com/",
+          "tags": ["recursos", "premium", "mockups"]
+        },
+        {
+          "title": "TutsPlus Photoshop",
+          "description": "Tutoriais detalhados sobre técnicas avançadas de Photoshop.",
+          "url": "https://design.tutsplus.com/categories/adobe-photoshop",
+          "tags": ["tutoriais", "avançado", "técnicas"]
+        }
+      ]
+    },
+    {
+      "id": "illustrator",
+      "title": "Illustrator",
+      "items": [
+        {
+          "title": "Adobe Illustrator",
+          "description": "Software de design vetorial para criar ilustrações, ícones, tipografia e elementos gráficos.",
+          "url": "https://www.adobe.com/products/illustrator.html",
+          "tags": ["premium", "vetorial", "ilustração"]
+        },
+        {
+          "title": "Vector Diary",
+          "description": "Tutoriais e dicas para Adobe Illustrator e design vetorial.",
+          "url": "https://www.vectordiary.com/",
+          "tags": ["tutoriais", "gratuito", "vetores"]
+        },
+        {
+          "title": "Vecteezy",
+          "description": "Recursos vetoriais gratuitos e premium que podem ser editados no Illustrator.",
+          "url": "https://www.vecteezy.com/",
+          "tags": ["recursos", "freemium", "vetores"]
+        },
+        {
+          "title": "IllustratorHow",
+          "description": "Tutoriais passo-a-passo para Adobe Illustrator, do básico ao avançado.",
+          "url": "https://illustratorhow.com/",
+          "tags": ["tutoriais", "aprendizado", "técnicas"]
+        }
+      ]
+    },
+    {
+      "id": "figma",
+      "title": "Figma",
+      "items": [
+        {
+          "title": "Figma",
+          "description": "Ferramenta de design colaborativo baseada na web para UI/UX, prototipagem e sistemas de design.",
+          "url": "https://www.figma.com/",
+          "tags": ["freemium", "UI/UX", "colaboração"]
+        },
+        {
+          "title": "Figma Community",
+          "description": "Biblioteca de recursos, plugins e templates compartilhados pela comunidade Figma.",
+          "url": "https://www.figma.com/community",
+          "tags": ["recursos", "gratuito", "templates"]
+        },
+        {
+          "title": "Figma for Beginners",
+          "description": "Curso completo para iniciantes em Figma oferecido pela própria Figma.",
+          "url": "https://help.figma.com/hc/en-us/categories/360002051633-Getting-Started",
+          "tags": ["tutorial", "iniciante", "gratuito"]
+        },
+        {
+          "title": "Figma UI Kits",
+          "description": "Coleção de kits de UI de alta qualidade para acelerar seus projetos.",
+          "url": "https://www.figmafreebies.com/",
+          "tags": ["recursos", "UI kits", "gratuito"]
+        }
+      ]
+    },
+    {
+      "id": "3d",
+      "title": "3D",
+      "items": [
+        {
+          "title": "Blender",
+          "description": "Software de criação 3D open-source com ferramentas para modelagem, animação, texturização e renderização.",
+          "url": "https://www.blender.org/",
+          "tags": ["gratuito", "open-source", "3D"]
+        },
+        {
+          "title": "Spline",
+          "description": "Ferramenta de design 3D para web com foco em experiências interativas.",
+          "url": "https://spline.design/",
+          "tags": ["freemium", "web", "3D interativo"]
+        },
+        {
+          "title": "Sketchfab",
+          "description": "Plataforma para descobrir, compartilhar e vender modelos 3D.",
+          "url": "https://sketchfab.com/",
+          "tags": ["marketplace", "freemium", "modelos"]
+        },
+        {
+          "title": "Cinema 4D",
+          "description": "Software profissional para animação 3D, modelagem e renderização.",
+          "url": "https://www.maxon.net/en/cinema-4d",
+          "tags": ["premium", "profissional", "animação"]
+        },
+        {
+          "title": "TurboSquid",
+          "description": "Marketplace para modelos 3D prontos para uso.",
+          "url": "https://www.turbosquid.com/",
+          "tags": ["marketplace", "modelos", "recursos"]
+        }
+      ]
+    }
+  ]
+}

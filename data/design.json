@@ -1,0 +1,152 @@
+{
+  "id": "design",
+  "title": "Design",
+  "icon": "icon-design.svg",
+  "description": "Recursos e ferramentas para todos os aspectos do design gráfico, web e de produto.",
+  "subcategories": [
+    {
+      "id": "ui-ux",
+      "title": "UI/UX",
+      "items": [
+        {
+          "title": "Material Design",
+          "description": "Sistema de design do Google com diretrizes completas para criar interfaces modernas e acessíveis.",
+          "url": "https://m3.material.io/",
+          "tags": ["gratuito", "sistema de design", "guidelines"]
+        },
+        {
+          "title": "A11Y Project",
+          "description": "Checklist e recursos para criar produtos digitais acessíveis.",
+          "url": "https://www.a11yproject.com/",
+          "tags": ["acessibilidade", "gratuito", "checklist"]
+        },
+        {
+          "title": "Dribbble",
+          "description": "Comunidade de designers para compartilhar e encontrar inspiração de UI/UX.",
+          "url": "https://dribbble.com/",
+          "tags": ["inspiração", "comunidade", "portfólio"]
+        },
+        {
+          "title": "Laws of UX",
+          "description": "Coleção de princípios psicológicos que designers podem considerar ao construir interfaces.",
+          "url": "https://lawsofux.com/",
+          "tags": ["psicologia", "princípios", "gratuito"]
+        },
+        {
+          "title": "UX Tools",
+          "description": "Recursos, ferramentas e métodos para designers UX.",
+          "url": "https://uxtools.co/",
+          "tags": ["ferramentas", "comparativo", "métodos"]
+        }
+      ]
+    },
+    {
+      "id": "branding",
+      "title": "Branding",
+      "items": [
+        {
+          "title": "Brand New",
+          "description": "Blog que documenta e discute redesigns corporativos e novas identidades de marca.",
+          "url": "https://www.underconsideration.com/brandnew/",
+          "tags": ["blog", "análise", "casos"]
+        },
+        {
+          "title": "Logo Archive",
+          "description": "Compilação de logos vintage para inspiração e referência.",
+          "url": "https://www.logoarchive.com/",
+          "tags": ["inspiração", "vintage", "logos"]
+        },
+        {
+          "title": "Brand Guidelines",
+          "description": "Coleção de manuais de identidade visual de grandes marcas para referência.",
+          "url": "https://brandguidelines.cc/",
+          "tags": ["guidelines", "manuais", "referência"]
+        },
+        {
+          "title": "Canva",
+          "description": "Ferramenta online para criar elementos de identidade visual como logos, cartões e materiais de marketing.",
+          "url": "https://www.canva.com/",
+          "tags": ["ferramenta", "freemium", "templates"]
+        },
+        {
+          "title": "LogoMaker",
+          "description": "Ferramenta para criar logos profissionais de forma rápida.",
+          "url": "https://www.logomaker.com/",
+          "tags": ["ferramenta", "logo", "freemium"]
+        }
+      ]
+    },
+    {
+      "id": "design-thinking",
+      "title": "Design Thinking",
+      "items": [
+        {
+          "title": "IDEO Design Kit",
+          "description": "Recursos, métodos e ferramentas para design thinking da IDEO.",
+          "url": "https://www.designkit.org/",
+          "tags": ["metodologia", "ferramentas", "gratuito"]
+        },
+        {
+          "title": "Stanford d.school",
+          "description": "Recursos educacionais sobre design thinking da Universidade Stanford.",
+          "url": "https://dschool.stanford.edu/resources",
+          "tags": ["educação", "recursos", "academia"]
+        },
+        {
+          "title": "Interaction Design Foundation",
+          "description": "Cursos e literatura sobre design thinking e metodologias de design.",
+          "url": "https://www.interaction-design.org/",
+          "tags": ["cursos", "educação", "freemium"]
+        },
+        {
+          "title": "Miro",
+          "description": "Quadro colaborativo online ideal para sessões de design thinking remotas.",
+          "url": "https://miro.com/",
+          "tags": ["ferramenta", "colaboração", "freemium"]
+        },
+        {
+          "title": "Design Sprint Kit",
+          "description": "Metodologia e recursos para conduzir design sprints baseados na metodologia do Google Ventures.",
+          "url": "https://designsprintkit.withgoogle.com/",
+          "tags": ["metodologia", "sprint", "gratuito"]
+        }
+      ]
+    },
+    {
+      "id": "recursos-visuais",
+      "title": "Recursos Visuais",
+      "items": [
+        {
+          "title": "Unsplash",
+          "description": "Fotos de alta qualidade gratuitas para uso comercial e pessoal.",
+          "url": "https://unsplash.com/",
+          "tags": ["fotos", "gratuito", "sem atribuição"]
+        },
+        {
+          "title": "Humaaans",
+          "description": "Ilustrações de pessoas customizáveis para projetos de design.",
+          "url": "https://www.humaaans.com/",
+          "tags": ["ilustrações", "gratuito", "customizável"]
+        },
+        {
+          "title": "Coolors",
+          "description": "Gerador de paletas de cores para encontrar combinações harmoniosas.",
+          "url": "https://coolors.co/",
+          "tags": ["cores", "paletas", "gratuito"]
+        },
+        {
+          "title": "Iconoir",
+          "description": "Biblioteca de ícones open source com design consistente.",
+          "url": "https://iconoir.com/",
+          "tags": ["ícones", "gratuito", "open-source"]
+        },
+        {
+          "title": "unDraw",
+          "description": "Ilustrações open-source para qualquer ideia que você possa imaginar e criar.",
+          "url": "https://undraw.co/",
+          "tags": ["ilustrações", "gratuito", "customizável"]
+        }
+      ]
+    }
+  ]
+}

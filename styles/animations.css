@@ -1,0 +1,264 @@
+/**
+ * Mindy® Hub - Animations and Effects
+ * Brazilian-inspired animations and visual effects
+ */
+
+/* ===== Keyframe Animations ===== */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeInLeft {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes float {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0); }
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes ripple {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+@keyframes gradientFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Brazilian-inspired wave animation */
+@keyframes wave {
+    0% { transform: translateX(0) translateZ(0) scaleY(1); }
+    50% { transform: translateX(-25%) translateZ(0) scaleY(0.8); }
+    100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
+}
+
+/* ===== Animation Classes ===== */
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+.fade-in-left {
+    animation: fadeInLeft 0.5s ease-out forwards;
+}
+
+.fade-in-right {
+    animation: fadeInRight 0.5s ease-out forwards;
+}
+
+.pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.float {
+    animation: float 6s ease-in-out infinite;
+}
+
+.bounce {
+    animation: bounce 2s ease-in-out infinite;
+}
+
+/* Staggered animations for lists */
+.stagger-fade-in > * {
+    opacity: 0;
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+.stagger-fade-in > *:nth-child(1) { animation-delay: 0.1s; }
+.stagger-fade-in > *:nth-child(2) { animation-delay: 0.2s; }
+.stagger-fade-in > *:nth-child(3) { animation-delay: 0.3s; }
+.stagger-fade-in > *:nth-child(4) { animation-delay: 0.4s; }
+.stagger-fade-in > *:nth-child(5) { animation-delay: 0.5s; }
+.stagger-fade-in > *:nth-child(6) { animation-delay: 0.6s; }
+.stagger-fade-in > *:nth-child(7) { animation-delay: 0.7s; }
+.stagger-fade-in > *:nth-child(8) { animation-delay: 0.8s; }
+
+/* ===== Interactive Effects ===== */
+
+/* Button hover effect */
+.btn-hover-effect {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.btn-hover-effect:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    transition: all 0.6s ease;
+    z-index: 1;
+}
+
+.btn-hover-effect:hover:before {
+    left: 100%;
+}
+
+/* Card hover effects */
+.card-hover-effect {
+    transition: all 0.3s ease;
+}
+
+.card-hover-effect:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Ripple effect for buttons */
+.ripple-effect {
+    position: relative;
+    overflow: hidden;
+}
+
+.ripple-effect .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.4);
+    transform: scale(0);
+    animation: ripple 0.6s linear;
+    pointer-events: none;
+}
+
+/* Brazilian-inspired decorative elements */
+.brazil-wave {
+    position: relative;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: border-color 0.3s ease;
+}
+
+.brazil-wave:after {
+    display: none;
+}
+
+.brazil-wave:hover {
+    border-bottom-color: var(--highlight-color);
+}
+
+/* Shimmer loading effect */
+.shimmer {
+    background: linear-gradient(
+        90deg,
+        var(--dark-surface-2) 0%,
+        var(--dark-surface-3) 50%,
+        var(--dark-surface-2) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+/* Gradient text effect */
+.gradient-text {
+    background: linear-gradient(
+        90deg,
+        var(--highlight-color) 0%,
+        var(--brazil-green) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Tropical gradient border */
+.tropical-border {
+    position: relative;
+}
+
+.tropical-border:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px solid transparent;
+    border-radius: inherit;
+    background: linear-gradient(45deg, 
+        var(--brazil-green), 
+        var(--brazil-yellow), 
+        var(--brazil-blue), 
+        var(--highlight-color)
+    ) border-box;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out;
+    mask-composite: exclude;
+    animation: gradientFlow 6s linear infinite;
+    background-size: 300% 300%;
+    pointer-events: none;
+}
+
+/* Confetti effect for celebrations */
+.confetti-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: var(--highlight-color);
+    opacity: 0.8;
+}
+
+.confetti.yellow { background-color: var(--brazil-yellow); }
+.confetti.green { background-color: var(--brazil-green); }
+.confetti.blue { background-color: var(--brazil-blue); }
+
+/* ===== Media Queries ===== */
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+} 

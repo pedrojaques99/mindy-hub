@@ -1,128 +1,203 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mindy® Hub | Biblioteca Digital</title>
     <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/animations.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="description" content="Mindy® Hub - Sua biblioteca digital de recursos para design, tipografia, ferramentas e mais.">
 </head>
 <body>
     <div class="app-container">
-        <!-- Header com branding e search -->
         <header class="app-header">
-            <div class="logo-container">
-                <h1 class="logo">Mindy<span class="logo-registered">®</span> Hub</h1>
-            </div>
-            <div class="search-container">
+            <div class="header-content">
+                <div class="logo-container">
+                    <a href="/" class="logo gradient-text" data-tooltip="Voltar para a página inicial">Mindy<span class="logo-accent">®</span> Hub</a>
+                </div>
+                
                 <form id="search-form" class="search-form">
                     <div class="search-input-wrapper">
-                        <img src="assets/icons/icon-search.svg" alt="Pesquisar" class="search-icon">
-                        <input type="text" id="search-input" class="search-input" placeholder="Buscar recursos...">
+                        <input type="text" id="search-input" class="search-input" placeholder="Buscar recursos..." aria-label="Buscar recursos">
+                        <button type="submit" class="search-button ripple-effect" data-tooltip="Buscar">
+                            <img src="assets/icons/icon-search.svg" alt="Buscar" class="search-icon">
+                        </button>
                     </div>
                 </form>
+                
+                <button id="menu-toggle" class="menu-toggle" aria-label="Menu" data-tooltip="Abrir/fechar menu">
+                    <span class="menu-icon"></span>
+                </button>
             </div>
         </header>
-
-        <!-- Main content -->
-        <main class="main-content">
-            <!-- Sidebar navigation -->
+        
+        <div class="app-content">
             <aside class="sidebar">
-                <div class="sidebar-header">
-                    <h2>Categorias</h2>
-                    <button id="menu-toggle" class="menu-toggle">
-                        <span class="menu-icon"></span>
-                    </button>
+                <div class="sidebar-header brazil-wave">
+                    <h2 class="sidebar-title">Categorias</h2>
                 </div>
-                <nav class="sidebar-nav" id="sidebar-nav">
-                    <!-- Populated via JavaScript -->
+                <nav id="sidebar-nav" class="sidebar-nav">
+                    <!-- Categorias serão carregadas via JavaScript -->
                 </nav>
             </aside>
-
-            <!-- Content area -->
-            <div class="content-area">
-                <!-- Hero section - Bento grid showcase -->
-                <section class="hero-section">
-                    <div class="bento-grid">
-                        <div class="bento-item featured-item" data-category="typography">
-                            <div class="bento-item-icon">
-                                <img src="assets/icons/icon-typography.svg" alt="Tipografia">
+            
+            <main class="main-content">
+                <section class="hero-section brazil-wave">
+                    <h1 class="hero-title fade-in">Explore recursos <span class="highlight gradient-text">criativos</span></h1>
+                    <p class="hero-description fade-in">Descubra ferramentas, tutoriais e recursos para impulsionar seus projetos de design.</p>
+                </section>
+                
+                <section class="bento-section">
+                    <h2 class="section-header fade-in">Explore por categoria</h2>
+                    
+                    <div class="bento-grid stagger-fade-in">
+                        <div class="bento-item featured-item card-hover-effect" data-category="design" data-tooltip="Recursos de Design">
+                            <div class="bento-item-content">
+                                <img src="assets/icons/icon-design.svg" alt="Design" class="bento-icon float">
+                                <h3 class="bento-title">Design</h3>
+                                <p class="bento-description">Ferramentas, tutoriais e recursos para design gráfico e UI/UX.</p>
                             </div>
-                            <h3>Fontes e Tipografias</h3>
-                            <p>Explore recursos tipográficos e combinações de fontes para seus projetos.</p>
                         </div>
-                        <div class="bento-item" data-category="design">
-                            <div class="bento-item-icon">
-                                <img src="assets/icons/icon-design.svg" alt="Design">
+                        
+                        <div class="bento-item card-hover-effect" data-category="typography" data-tooltip="Recursos de Tipografia">
+                            <div class="bento-item-content">
+                                <img src="assets/icons/icon-typography.svg" alt="Tipografia" class="bento-icon float">
+                                <h3 class="bento-title">Tipografia</h3>
+                                <p class="bento-description">Fontes, pares tipográficos e guias de tipografia.</p>
                             </div>
-                            <h3>Design</h3>
-                            <p>UI/UX, branding e design thinking para elevar suas criações.</p>
                         </div>
-                        <div class="bento-item" data-category="tools">
-                            <div class="bento-item-icon">
-                                <img src="assets/icons/icon-tools.svg" alt="Ferramentas">
+                        
+                        <div class="bento-item card-hover-effect" data-category="tools" data-tooltip="Ferramentas Úteis">
+                            <div class="bento-item-content">
+                                <img src="assets/icons/icon-tools.svg" alt="Ferramentas" class="bento-icon float">
+                                <h3 class="bento-title">Ferramentas</h3>
+                                <p class="bento-description">Utilitários e ferramentas para otimizar seu fluxo de trabalho.</p>
                             </div>
-                            <h3>Ferramentas</h3>
-                            <p>Photoshop, Illustrator, Figma e mais para seu fluxo de trabalho.</p>
                         </div>
-                        <div class="bento-item" data-category="ai">
-                            <div class="bento-item-icon">
-                                <img src="assets/icons/icon-ai.svg" alt="IA">
+                        
+                        <div class="bento-item card-hover-effect" data-category="ai" data-tooltip="Recursos de IA">
+                            <div class="bento-item-content">
+                                <img src="assets/icons/icon-ai.svg" alt="IA" class="bento-icon float">
+                                <h3 class="bento-title">IA</h3>
+                                <p class="bento-description">Ferramentas de IA para potencializar sua criatividade.</p>
                             </div>
-                            <h3>Inteligência Artificial</h3>
-                            <p>Midjourney, DALL-E, ChatGPT e outras ferramentas de IA para designers.</p>
                         </div>
-                        <div class="bento-item wide-item" data-category="3d">
-                            <div class="bento-item-icon">
-                                <img src="assets/icons/icon-3d.svg" alt="3D">
+                        
+                        <div class="bento-item card-hover-effect" data-category="3d" data-tooltip="Recursos de 3D">
+                            <div class="bento-item-content">
+                                <img src="assets/icons/icon-3d.svg" alt="3D" class="bento-icon float">
+                                <h3 class="bento-title">3D</h3>
+                                <p class="bento-description">Modelos, texturas e ferramentas para criação 3D.</p>
                             </div>
-                            <h3>Design 3D</h3>
-                            <p>Ferramentas e recursos para modelagem, renderização e animação 3D.</p>
                         </div>
                     </div>
                 </section>
-
-                <!-- Popular resources section -->
+                
                 <section class="popular-section">
-                    <div class="section-header">
-                        <h2>Recursos em Destaque</h2>
-                        <div class="section-header-line"></div>
+                    <div class="section-header-container brazil-wave">
+                        <h2 class="section-header fade-in">Recursos populares</h2>
+                        <a href="#" class="view-all-link btn-hover-effect" data-tooltip="Ver todos os recursos populares">Ver todos</a>
                     </div>
-                    <div class="popular-grid" id="popular-grid">
-                        <!-- Populated via JavaScript -->
+                    
+                    <div id="popular-resources" class="resource-grid stagger-fade-in">
+                        <!-- Recursos populares serão carregados via JavaScript -->
+                        <div class="resource-placeholder-container">
+                            <div class="resource-placeholder pulse"></div>
+                            <div class="resource-placeholder pulse"></div>
+                            <div class="resource-placeholder pulse"></div>
+                        </div>
                     </div>
                 </section>
-
-                <!-- Recent additions -->
+                
                 <section class="recent-section">
-                    <div class="section-header">
-                        <h2>Adicionados Recentemente</h2>
-                        <div class="section-header-line"></div>
+                    <div class="section-header-container brazil-wave">
+                        <h2 class="section-header fade-in">Adicionados recentemente</h2>
+                        <a href="#" class="view-all-link btn-hover-effect" data-tooltip="Ver todos os recursos recentes">Ver todos</a>
                     </div>
-                    <div class="recent-grid" id="recent-grid">
-                        <!-- Populated via JavaScript -->
+                    
+                    <div id="recent-resources" class="resource-grid stagger-fade-in">
+                        <!-- Recursos recentes serão carregados via JavaScript -->
+                        <div class="resource-placeholder-container">
+                            <div class="resource-placeholder pulse"></div>
+                            <div class="resource-placeholder pulse"></div>
+                            <div class="resource-placeholder pulse"></div>
+                        </div>
                     </div>
                 </section>
-            </div>
-        </main>
-    </div>
-
-    <!-- Modal for content display -->
-    <div id="modal" class="modal">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h2 class="modal-title">Título do Recurso</h2>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-content">
-                <!-- Dynamic content here -->
+            </main>
+        </div>
+        
+        <div id="modal" class="modal">
+            <div class="modal-container tropical-border">
+                <div class="modal-header brazil-wave">
+                    <h2 class="modal-title">Título do Modal</h2>
+                    <button class="modal-close" aria-label="Fechar" data-tooltip="Fechar">×</button>
+                </div>
+                <div class="modal-content">
+                    <!-- Conteúdo do modal será carregado dinamicamente -->
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-action-button ripple-effect btn-hover-effect" data-tooltip="Confirmar ação">Confirmar</button>
+                </div>
             </div>
         </div>
-    </div>
+        
+        <!-- Template para itens de recurso -->
+        <template id="resource-template">
+            <div class="resource-item card-hover-effect">
+                <div class="resource-header">
+                    <div class="resource-category">
+                        <img src="" alt="" class="resource-category-icon">
+                        <span class="resource-category-name"></span>
+                    </div>
+                    <button class="save-button ripple-effect" aria-label="Salvar recurso" data-tooltip="Salvar para depois">
+                        <img src="assets/icons/icon-heart.svg" alt="Salvar" class="save-icon">
+                    </button>
+                </div>
+                <h3 class="resource-title"></h3>
+                <p class="resource-description"></p>
+                <div class="resource-tags"></div>
+                <div class="resource-actions">
+                    <a href="#" class="resource-link btn-hover-effect" target="_blank" rel="noopener noreferrer" data-tooltip="Abrir recurso">Acessar</a>
+                </div>
+            </div>
+        </template>
 
-    <!-- Scripts -->
+        <!-- Template para página de categoria -->
+        <template id="category-page-template">
+            <div class="category-page">
+                <div class="category-header brazil-wave">
+                    <div class="category-icon">
+                        <img src="" alt="">
+                    </div>
+                    <div class="category-info">
+                        <h1 class="category-title gradient-text"></h1>
+                        <p class="category-description"></p>
+                    </div>
+                </div>
+                <div class="subcategories-section">
+                    <h2 class="section-header">Subcategorias</h2>
+                    <div class="subcategories-grid stagger-fade-in">
+                        <!-- Subcategorias serão inseridas aqui -->
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Template para subcategorias -->
+        <template id="subcategory-template">
+            <div class="subcategory-card card-hover-effect">
+                <h3 class="subcategory-title"></h3>
+                <div class="subcategory-icon">
+                    <img src="assets/icons/icon-arrow-right.svg" alt="Acessar subcategoria" class="icon-arrow">
+                </div>
+            </div>
+        </template>
+    </div>
+    
     <script src="scripts/main.js"></script>
 </body>
 </html>

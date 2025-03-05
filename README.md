@@ -180,3 +180,77 @@ If you encounter issues with the Supabase integration:
 3. Check your browser console for specific error messages
 
 For further assistance, please contact support.
+
+## Supabase Integration
+
+The Mindy Hub application now features a complete Supabase integration for storing and retrieving data. This allows you to switch between local JSON files and a Supabase database as your data source.
+
+### Setting Up Supabase
+
+1. Create a Supabase account and project at [https://supabase.com](https://supabase.com)
+2. Set up the required database tables using the SQL below:
+
+```sql
+-- Create categories table
+CREATE TABLE categories (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  icon TEXT,
+  description TEXT
+);
+
+-- Create subcategories table
+CREATE TABLE subcategories (
+  id TEXT NOT NULL,
+  category_id TEXT NOT NULL REFERENCES categories(id),
+  title TEXT NOT NULL,
+  PRIMARY KEY (id, category_id)
+);
+
+-- Create resources table
+CREATE TABLE resources (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  url TEXT NOT NULL UNIQUE,
+  tags TEXT[] DEFAULT '{}',
+  category_id TEXT NOT NULL,
+  subcategory_id TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  FOREIGN KEY (category_id, subcategory_id) REFERENCES subcategories(category_id, id)
+);
+```
+
+3. Get your Supabase URL and anon key from the project settings
+
+### Using the Admin Panel
+
+The admin panel allows you to manage the Supabase integration:
+
+1. Access the admin panel by pressing `Ctrl+Shift+A`
+2. Configure your Supabase URL and anon key
+3. Use the button functions:
+   - **Upload CSV to Supabase**: Upload the data from `database-content.csv` to your Supabase database
+   - **Sync from Supabase**: Download the current data from Supabase as a CSV file
+   - **Switch to Supabase/Switch to Local JSON**: Toggle between data sources
+
+### Data Source Toggle
+
+You can now switch between local JSON files and Supabase as your data source:
+
+1. Press `Ctrl+Shift+A` to open the admin panel
+2. Click "Switch to Supabase" or "Switch to Local JSON" to toggle between data sources
+3. The application will reload with the selected data source
+
+When using Supabase, the application will fetch categories, subcategories, and resources directly from your Supabase database instead of the local JSON files.
+
+### Troubleshooting
+
+If you encounter issues with the Supabase integration:
+
+1. Check that your Supabase URL and anon key are correct
+2. Verify that your database tables are set up with the exact structure shown above
+3. Check the browser console for specific error messages
+4. Try uploading the CSV data again using the "Upload CSV to Supabase" button
+
+If problems persist, you can always switch back to local JSON files using the toggle button.

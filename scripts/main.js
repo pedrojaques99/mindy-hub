@@ -40,6 +40,9 @@ function initializeApp() {
         // Initialize recently viewed resources
         initRecentlyViewed();
         
+        // Handle URL parameters after data is loaded
+        handleURLParameters();
+        
         // Hide page loader
         if (loader) {
             loader.classList.remove('active');
@@ -48,15 +51,15 @@ function initializeApp() {
         console.error('Failed to initialize the application:', error);
         
         // Display a user-friendly error message
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) {
-            mainContent.innerHTML = `
+    const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.innerHTML = `
                 <div class="error-message" style="text-align: center; padding: 40px 20px;">
                     <h2 style="margin-bottom: 20px; color: var(--text-primary);">Oops! Algo deu errado.</h2>
                     <p style="margin-bottom: 30px; color: var(--text-secondary);">Encontramos um erro ao carregar os dados da aplicação. Por favor, tente recarregar a página.</p>
                     <button class="refresh-button" onclick="location.reload()">Recarregar Página</button>
-                </div>
-            `;
+                    </div>
+                `;
         }
         
         // Try to initialize sidebar anyway with fallback data
@@ -87,10 +90,104 @@ function initializeApp() {
     }, 1000);
 }
 
+/**
+ * Handle resource actions (save, share, preview)
+ */
+function handleResourceActions() {
+    // Handle resource card actions (delegated event handling)
+    document.addEventListener('click', (e) => {
+        // Save button
+        const saveButton = e.target.closest('.save-button');
+        if (saveButton) {
+            const resourceItem = saveButton.closest('.resource-item');
+            if (resourceItem) {
+                const resourceId = resourceItem.dataset.id;
+                if (resourceId) {
+                    toggleSavedResource(resourceId, saveButton);
+                }
+            }
+            return;
+        }
+        
+        // Share button
+        const shareButton = e.target.closest('.share-button');
+        if (shareButton) {
+            const resourceItem = shareButton.closest('.resource-item');
+            if (resourceItem) {
+                const resourceId = resourceItem.dataset.id;
+                if (resourceId) {
+                    // Create share URL
+                    const shareUrl = `${window.location.origin}${window.location.pathname}?resource=${encodeURIComponent(resourceId)}`;
+                    
+                    // Try to use Web Share API if available
+                    if (navigator.share) {
+                        navigator.share({
+                            title: resourceItem.querySelector('.resource-title')?.textContent || 'Recurso Mindy',
+                            text: resourceItem.querySelector('.resource-description')?.textContent || 'Confira este recurso da Mindy',
+                            url: shareUrl
+                        }).catch(error => {
+                            console.error('Error sharing:', error);
+                            // Fallback to clipboard
+                            copyToClipboard(shareUrl);
+                            showToast('Link copiado para a área de transferência!', 'success');
+                        });
+                    } else {
+                        // Fallback to clipboard
+                        copyToClipboard(shareUrl);
+                        showToast('Link copiado para a área de transferência!', 'success');
+                    }
+                }
+            }
+            return;
+        }
+        
+        // Preview button
+        const previewButton = e.target.closest('.resource-preview-button');
+        if (previewButton) {
+            const resourceItem = previewButton.closest('.resource-item');
+            if (resourceItem) {
+                const resourceLink = resourceItem.querySelector('.resource-link');
+                if (resourceLink && resourceLink.href) {
+                    showResourcePreview(resourceLink.href);
+                }
+            }
+            return;
+        }
+        
+        // Resource link
+        const resourceLink = e.target.closest('.resource-link');
+        if (resourceLink) {
+            // Track resource view
+            const resourceItem = resourceLink.closest('.resource-item');
+            if (resourceItem) {
+                const resourceId = resourceItem.dataset.id || resourceLink.dataset.id;
+                if (resourceId) {
+                    // Find resource data
+                    import('./modules/data.js')
+                        .then(dataModule => {
+                            dataModule.findResourceById(resourceId)
+                                .then(resource => {
+                                    if (resource) {
+                                        trackResourceView(resource);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error finding resource:', error);
+                                });
+                        })
+                        .catch(error => {
+                            console.error('Error loading data module:', error);
+                        });
+                }
+            }
+        }
+    });
+}
+
 // Ensure the app initializes properly whether DOM is already loaded or not
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
+        } else {
     // DOM already loaded, initialize immediately
     initializeApp();
 }
@@ -100,1887 +197,273 @@ if (document.readyState === 'loading') {
 /**
  * Initialize the sidebar with modern functionality
  */
-function initSidebar() {
+async function initSidebar() {
+    console.log('Initializing sidebar...');
+    
+    // Check if our sidebar-fix.js has already initialized its sidebar
+    if (document.querySelector('.mindyhub-sidebar')) {
+        console.log('Using mindyhub-sidebar from sidebar-fix.js instead');
+        return; // Exit early, use the fixed sidebar instead
+    }
+    
     try {
-        console.log('Initializing sidebar...');
-        
-        // Remove old sidebar if exists
-        const oldSidebar = document.querySelector('.sidebar');
-        if (oldSidebar) {
-            oldSidebar.remove();
-        }
-        
-        // Create sidebar structure if it doesn't exist yet
+        // Create sidebar structure
         createSidebarStructure();
         
-        // Update main content class for the new sidebar
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) {
-            // Add sidebar margin only if not mobile
-            if (window.innerWidth > 768) {
-                mainContent.style.marginLeft = '250px';
-                mainContent.style.width = 'calc(100% - 250px)';
-            }
-        }
+        // Load categories
+        await loadCategories();
         
-        // Load categories data
-        loadCategories()
-            .then(categoriesData => {
-                console.log('Categories loaded successfully:', categoriesData.length);
-                
-                // Populate sidebar with categories
-                populateSidebar(categoriesData);
-                
-                // Initialize event listeners
-                initSidebarEvents();
-                
-                // Mark active category based on URL
-                markActiveCategoryFromURL();
-                
-                // Initialize mobile sidebar
-                initMobileSidebar();
-                
-                // Set initial state from localStorage
-                setInitialSidebarState();
-                
-                // Let the app know sidebar is ready
-                document.dispatchEvent(new CustomEvent('sidebar-ready'));
-            })
-            .catch(error => {
-                console.error('Failed to initialize sidebar:', error);
-                showSidebarError();
-            });
+        // Mark active category
+        markActiveCategory();
+        
+        console.log('Sidebar initialization complete');
     } catch (error) {
-        console.error('Error in initSidebar:', error);
-        showToast('There was a problem initializing the sidebar.', 'error');
+        console.error('Error initializing sidebar:', error);
+        createBasicSidebarStructure();
+        showSidebarError('Failed to initialize sidebar. Please refresh the page.');
     }
 }
 
 /**
- * Creates the basic sidebar structure in the DOM
+ * Create the sidebar structure in the DOM
  */
 function createSidebarStructure() {
-    // Check if new sidebar already exists
-    if (document.querySelector('.mindyhub-sidebar')) {
-        console.log('Sidebar already exists, not creating a new one');
+    console.log('Creating sidebar structure...');
+    
+    // Check if sidebar already exists
+    let sidebar = document.querySelector('.mindyhub-sidebar');
+    if (sidebar) {
+        console.log('Sidebar already exists, using existing element');
         return;
     }
     
-    console.log('Creating new sidebar structure');
+    try {
+        // Create sidebar element
+        sidebar = document.createElement('div');
+        sidebar.className = 'mindyhub-sidebar';
+        sidebar.setAttribute('role', 'navigation');
+        sidebar.setAttribute('aria-label', 'Main Navigation');
+        
+        // Create sidebar header
+        const sidebarHeader = document.createElement('div');
+        sidebarHeader.className = 'mindyhub-sidebar-header';
+        
+        // Create sidebar title
+        const sidebarTitle = document.createElement('div');
+        sidebarTitle.className = 'mindyhub-sidebar-title';
+        sidebarTitle.textContent = 'Mindy Hub';
+        
+        // Create sidebar toggle button
+        const sidebarToggle = document.createElement('button');
+        sidebarToggle.className = 'mindyhub-sidebar-toggle';
+        sidebarToggle.setAttribute('aria-label', 'Toggle Sidebar');
+        sidebarToggle.innerHTML = '<i class="fa fa-bars"></i>';
+        sidebarToggle.addEventListener('click', toggleSidebar);
+        
+        // Add elements to sidebar header
+        sidebarHeader.appendChild(sidebarTitle);
+        sidebarHeader.appendChild(sidebarToggle);
+        
+        // Create sidebar content area
+        const sidebarContent = document.createElement('div');
+        sidebarContent.className = 'mindyhub-sidebar-content';
+        sidebarContent.innerHTML = '<div class="mindyhub-loading">Inicializando...</div>';
+        
+        // Add elements to sidebar
+        sidebar.appendChild(sidebarHeader);
+        sidebar.appendChild(sidebarContent);
+        
+        // Find the proper container to append the sidebar
+        let container = document.querySelector('.page-container');
+        if (!container) {
+            console.warn('Page container not found, appending to body');
+            container = document.body;
+        }
+        
+        // Insert the sidebar at the beginning of the container
+        if (container.firstChild) {
+            container.insertBefore(sidebar, container.firstChild);
+                    } else {
+            container.appendChild(sidebar);
+        }
+        
+        console.log('Sidebar structure created successfully');
+        
+        // Create overlay for mobile devices
+        createSidebarOverlay();
+        
+        // Create mobile toggle button
+        createMobileToggle();
+    } catch (error) {
+        console.error('Error creating sidebar structure:', error);
+        throw error; // Re-throw to be caught by the caller
+    }
+}
+
+/**
+ * Create a basic sidebar structure as fallback
+ */
+function createBasicSidebarStructure() {
+    console.log('Creating basic sidebar structure as fallback...');
+    
+    // Check if sidebar already exists
+    let sidebar = document.querySelector('.mindyhub-sidebar');
+    if (sidebar) {
+        return;
+    }
     
     // Create sidebar element
-    const sidebar = document.createElement('div');
+    sidebar = document.createElement('div');
     sidebar.className = 'mindyhub-sidebar';
     
-    // Create sidebar header
-    const header = document.createElement('div');
-    header.className = 'mindyhub-sidebar-header';
-    
-    const title = document.createElement('div');
-    title.className = 'mindyhub-sidebar-title';
-    title.textContent = 'MindyHub';
-    
-    const toggleBtn = document.createElement('button');
-    toggleBtn.className = 'mindyhub-sidebar-toggle';
-    toggleBtn.setAttribute('aria-label', 'Toggle sidebar');
-    toggleBtn.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-        </svg>
-    `;
-    
-    header.appendChild(title);
-    header.appendChild(toggleBtn);
-    
-    // Create sidebar content
-    const content = document.createElement('div');
-    content.className = 'mindyhub-sidebar-content';
-    content.innerHTML = `<div class="mindyhub-loading">Loading categories...</div>`;
-    
-    // Add elements to sidebar
-    sidebar.appendChild(header);
-    sidebar.appendChild(content);
-    
-    // Add to DOM - try different possible containers
-    const container = document.querySelector('.page-container');
-    const body = document.body;
-    
-    if (container) {
-        console.log('Adding sidebar to .page-container');
-        container.prepend(sidebar);
-    } else {
-        console.log('Adding sidebar to body');
-        body.prepend(sidebar);
-    }
-    
-    // Create overlay for mobile if it doesn't exist
-    if (!document.querySelector('.mindyhub-sidebar-overlay')) {
-        const overlay = document.createElement('div');
-        overlay.className = 'mindyhub-sidebar-overlay';
-        document.body.appendChild(overlay);
-    }
-    
-    // Create mobile toggle button if it doesn't exist
-    if (!document.querySelector('.mindyhub-mobile-toggle')) {
-        const mobileToggle = document.createElement('button');
-        mobileToggle.className = 'mindyhub-mobile-toggle';
-        mobileToggle.setAttribute('aria-label', 'Open sidebar');
-        mobileToggle.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-        `;
-        document.body.appendChild(mobileToggle);
-    }
-}
-
-/**
- * Populates the sidebar with categories and subcategories
- */
-function populateSidebar(categoriesData) {
-    const sidebarContent = document.querySelector('.mindyhub-sidebar-content');
-    if (!sidebarContent) {
-        console.error('Sidebar content container not found');
-        return;
-    }
-    
-    if (!categoriesData || !Array.isArray(categoriesData) || categoriesData.length === 0) {
-        console.error('Invalid or empty categories data');
-        sidebarContent.innerHTML = `
+    // Create simple content
+    sidebar.innerHTML = `
+        <div class="mindyhub-sidebar-header">
+            <div class="mindyhub-sidebar-title">Mindy Hub</div>
+            <button class="mindyhub-sidebar-toggle" aria-label="Toggle Sidebar">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+        <div class="mindyhub-sidebar-content">
             <div class="mindyhub-sidebar-error">
-                <p>Não foi possível carregar as categorias.</p>
-                <button class="refresh-button" onclick="window.location.reload()">
-                    Recarregar
-                </button>
+                <p>Não foi possível carregar o menu lateral.</p>
+                <button class="refresh-button" onclick="refreshSidebar()">Tentar novamente</button>
             </div>
-        `;
+                        </div>
+                    `;
+    
+    // Append to body
+    document.body.appendChild(sidebar);
+    
+    console.log('Basic sidebar structure created');
+}
+
+/**
+ * Create overlay for mobile sidebar
+ */
+function createSidebarOverlay() {
+    // Check if overlay already exists
+    let overlay = document.querySelector('.mindyhub-sidebar-overlay');
+    if (overlay) {
         return;
     }
     
-    console.log(`Populating sidebar with ${categoriesData.length} categories`);
+    // Create overlay
+    overlay = document.createElement('div');
+    overlay.className = 'mindyhub-sidebar-overlay';
     
-    // Clear existing content
-    sidebarContent.innerHTML = '';
-    
-    // Add each category
-    categoriesData.forEach(category => {
-        const categoryElement = document.createElement('div');
-        categoryElement.className = 'mindyhub-category';
-        categoryElement.dataset.category = category.id;
-        
-        // Create category header
-        const categoryHeader = document.createElement('div');
-        categoryHeader.className = 'mindyhub-category-header';
-        
-        // Create category icon
-        const iconContainer = document.createElement('div');
-        iconContainer.className = 'mindyhub-category-icon';
-        iconContainer.innerHTML = `<img src="assets/icons/icon-${category.id}.svg" alt="${category.name}" onerror="this.src='assets/icons/icon-resource.svg'; this.onerror=null;">`;
-        
-        // Create category name
-        const categoryName = document.createElement('div');
-        categoryName.className = 'mindyhub-category-name';
-        categoryName.textContent = category.name;
-        
-        // Create category count
-        const categoryCount = document.createElement('div');
-        categoryCount.className = 'mindyhub-category-count';
-        categoryCount.textContent = '0'; // Will be updated with actual count
-        
-        // Create expand icon if there are subcategories
-        const expandIcon = document.createElement('div');
-        expandIcon.className = 'mindyhub-expand-icon';
-        expandIcon.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-        `;
-        
-        // Add elements to header
-        categoryHeader.appendChild(iconContainer);
-        categoryHeader.appendChild(categoryName);
-        categoryHeader.appendChild(categoryCount);
-        
-        if (category.subcategories && category.subcategories.length > 0) {
-            categoryHeader.appendChild(expandIcon);
-        }
-        
-        // Create subcategories container
-        const subcategoriesContainer = document.createElement('div');
-        subcategoriesContainer.className = 'mindyhub-subcategories';
-        
-        // Add subcategories if available
-        if (category.subcategories && category.subcategories.length > 0) {
-            category.subcategories.forEach(subcategory => {
-                const subcategoryElement = document.createElement('div');
-                subcategoryElement.className = 'mindyhub-subcategory';
-                subcategoryElement.dataset.subcategory = subcategory.id;
-                subcategoryElement.dataset.category = category.id;
-                
-                const subcategoryName = document.createElement('div');
-                subcategoryName.className = 'mindyhub-subcategory-name';
-                subcategoryName.textContent = subcategory.name;
-                
-                const subcategoryCount = document.createElement('div');
-                subcategoryCount.className = 'mindyhub-subcategory-count';
-                subcategoryCount.textContent = '0'; // Will be updated with actual count
-                
-                subcategoryElement.appendChild(subcategoryName);
-                subcategoryElement.appendChild(subcategoryCount);
-                subcategoriesContainer.appendChild(subcategoryElement);
-            });
-        }
-        
-        // Add all elements to category
-        categoryElement.appendChild(categoryHeader);
-        categoryElement.appendChild(subcategoriesContainer);
-        
-        // Add category to sidebar
-        sidebarContent.appendChild(categoryElement);
+    // Add click event to close sidebar on overlay click
+    overlay.addEventListener('click', () => {
+        toggleMobileSidebar(false);
     });
+    
+    // Append to body
+    document.body.appendChild(overlay);
 }
 
 /**
- * Initialize event listeners for sidebar functionality
+ * Create mobile toggle button
  */
-function initSidebarEvents() {
-    console.log('Initializing sidebar event listeners');
-    
-    // Sidebar toggle button (desktop)
-    const toggleBtn = document.querySelector('.mindyhub-sidebar-toggle');
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', toggleSidebar);
-    }
-    
-    // Category headers - click to expand/collapse
-    const categoryHeaders = document.querySelectorAll('.mindyhub-category-header');
-    console.log(`Found ${categoryHeaders.length} category headers`);
-    
-    categoryHeaders.forEach(header => {
-        header.addEventListener('click', (e) => {
-            const category = header.closest('.mindyhub-category');
-            if (!category) return;
-            
-            // If sidebar is collapsed, expand it first then handle category
-            const sidebar = document.querySelector('.mindyhub-sidebar');
-            if (sidebar && sidebar.classList.contains('collapsed')) {
-                toggleSidebar();
-                setTimeout(() => {
-                    handleCategoryClick(category);
-                }, 300); // Wait for animation to complete
-            } else {
-                handleCategoryClick(category);
-            }
-        });
-    });
-    
-    // Subcategory items - click to load content
-    const subcategories = document.querySelectorAll('.mindyhub-subcategory');
-    console.log(`Found ${subcategories.length} subcategories`);
-    
-    subcategories.forEach(subcategory => {
-        subcategory.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent category click
-            
-            // Remove active class from all subcategories
-            document.querySelectorAll('.mindyhub-subcategory').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            // Add active class to this subcategory
-            subcategory.classList.add('active');
-            
-            // Load subcategory content
-            const categoryId = subcategory.dataset.category;
-            const subcategoryId = subcategory.dataset.subcategory;
-            if (categoryId && subcategoryId) {
-                loadSubcategoryContent(categoryId, subcategoryId);
-            }
-            
-            // Set active parent category
-            const parentCategory = subcategory.closest('.mindyhub-category');
-            if (parentCategory) {
-                // Remove active class from all categories
-                document.querySelectorAll('.mindyhub-category').forEach(item => {
-                    item.classList.remove('active');
-                });
-                
-                // Add active class to parent category
-                parentCategory.classList.add('active');
-            }
-            
-            // Close mobile sidebar if on mobile
-            if (window.innerWidth <= 768) {
-                toggleMobileSidebar(false); // Force close
-            }
-        });
-    });
-    
-    // Keyboard navigation
-    document.addEventListener('keydown', (e) => {
-        // Ctrl+B to toggle sidebar (common shortcut in many IDEs)
-        if (e.ctrlKey && e.key === 'b') {
-            e.preventDefault();
-            toggleSidebar();
-        }
-    });
-}
-
-/**
- * Delayed initialization for sidebar event listeners (called after DOM is fully loaded)
- */
-function reinitSidebarEvents() {
-    setTimeout(() => {
-        initSidebarEvents();
-    }, 500);
-}
-
-/**
- * Handle category click - toggle expand/collapse and load content
- */
-function handleCategoryClick(category) {
-    // Toggle expanded state
-    category.classList.toggle('expanded');
-    
-    // Set active category
-    document.querySelectorAll('.mindyhub-category').forEach(item => {
-        if (item !== category) {
-            item.classList.remove('active');
-        }
-    });
-    category.classList.add('active');
-    
-    // Load category content
-    const categoryId = category.dataset.category;
-    if (categoryId) {
-        loadCategoryPage(categoryId);
-    }
-    
-    // Close mobile sidebar if on mobile
-    if (window.innerWidth <= 768) {
-        toggleMobileSidebar(false); // Force close
-    }
-}
-
-/**
- * Initialize mobile sidebar functionality
- */
-function initMobileSidebar() {
-    console.log('Initializing mobile sidebar');
-    
-    // Mobile toggle button
-    const mobileToggle = document.querySelector('.mindyhub-mobile-toggle');
+function createMobileToggle() {
+    // Check if mobile toggle already exists
+    let mobileToggle = document.querySelector('.mindyhub-mobile-toggle');
     if (mobileToggle) {
-        mobileToggle.addEventListener('click', () => toggleMobileSidebar());
+        return;
     }
     
-    // Overlay click to close
-    const overlay = document.querySelector('.mindyhub-sidebar-overlay');
-    if (overlay) {
-        overlay.addEventListener('click', () => toggleMobileSidebar(false));
-    }
+    // Create mobile toggle
+    mobileToggle = document.createElement('button');
+    mobileToggle.className = 'mindyhub-mobile-toggle';
+    mobileToggle.setAttribute('aria-label', 'Toggle Navigation');
+    mobileToggle.innerHTML = '<i class="fa fa-bars"></i>';
     
-    // Escape key to close
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
+    // Add click event to toggle mobile sidebar
+    mobileToggle.addEventListener('click', () => {
+        toggleMobileSidebar();
+    });
+    
+    // Append to body
+    document.body.appendChild(mobileToggle);
+}
+
+/**
+ * Setup sidebar event listeners
+ */
+function setupSidebarEvents() {
+    // Close sidebar with Escape key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
             const sidebar = document.querySelector('.mindyhub-sidebar');
-            if (sidebar && sidebar.classList.contains('active')) {
+            if (sidebar && window.innerWidth <= 768 && sidebar.classList.contains('active')) {
                 toggleMobileSidebar(false);
             }
         }
     });
-}
-
-/**
- * Toggle mobile sidebar visibility
- */
-function toggleMobileSidebar(force) {
-    const sidebar = document.querySelector('.mindyhub-sidebar');
-    const overlay = document.querySelector('.mindyhub-sidebar-overlay');
     
-    if (!sidebar) {
-        console.error('Sidebar element not found');
-        return;
-    }
-    
-    // Force state if provided
-    const shouldOpen = force === undefined ? 
-        !sidebar.classList.contains('active') : 
-        force;
-    
-    console.log(`Mobile sidebar: ${shouldOpen ? 'opening' : 'closing'}`);
-    
-    if (shouldOpen) {
-        // Open sidebar
-        sidebar.classList.add('active');
-        if (overlay) overlay.classList.add('active');
-        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    // Adjust sidebar on window resize
+    window.addEventListener('resize', () => {
+        const sidebar = document.querySelector('.mindyhub-sidebar');
+        if (!sidebar) return;
         
-        // Announce for screen readers
-        announceForScreenReader('Mobile sidebar opened');
-    } else {
-        // Close sidebar
+        // If transitioning from mobile to desktop, remove 'active' class
+        if (window.innerWidth > 768 && sidebar.classList.contains('active')) {
         sidebar.classList.remove('active');
-        if (overlay) overlay.classList.remove('active');
-        document.body.style.overflow = ''; // Restore scrolling
-        
-        // Announce for screen readers
-        announceForScreenReader('Mobile sidebar closed');
-    }
+            document.body.classList.remove('sidebar-open');
+            const overlay = document.querySelector('.mindyhub-sidebar-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+            }
+        }
+    });
 }
 
 /**
- * Toggle sidebar expanded/collapsed state
+ * Mark active category based on URL parameters
  */
-function toggleSidebar() {
-    const sidebar = document.querySelector('.mindyhub-sidebar');
-    const mainContent = document.querySelector('.main-content');
-    
-    if (!sidebar) {
-        console.error('Sidebar element not found for toggle');
-        return;
-    }
-    
-    // Only allow toggle on desktop
-    if (window.innerWidth <= 768) {
-        console.log('Sidebar toggle disabled on mobile');
-        return;
-    }
-    
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    console.log(`Toggling sidebar: ${isCollapsed ? 'expanding' : 'collapsing'}`);
-    
-    if (isCollapsed) {
-        // Expand sidebar
-        sidebar.classList.remove('collapsed');
-        document.body.classList.remove('sidebar-collapsed');
-        if (mainContent) {
-            mainContent.classList.remove('expanded');
-            mainContent.style.marginLeft = '250px';
-            mainContent.style.width = 'calc(100% - 250px)';
-        }
-        
-        // Update toggle button icon
-        const toggleIcon = sidebar.querySelector('.mindyhub-sidebar-toggle svg');
-        if (toggleIcon) {
-            toggleIcon.innerHTML = '<path d="M15 18l-6-6 6-6" />';
-        }
-        
-        // Announce for screen readers
-        announceForScreenReader('Sidebar expanded');
-    } else {
-        // Collapse sidebar
-        sidebar.classList.add('collapsed');
-        document.body.classList.add('sidebar-collapsed');
-        if (mainContent) {
-            mainContent.classList.add('expanded');
-            mainContent.style.marginLeft = '60px';
-            mainContent.style.width = 'calc(100% - 60px)';
-        }
-        
-        // Update toggle button icon
-        const toggleIcon = sidebar.querySelector('.mindyhub-sidebar-toggle svg');
-        if (toggleIcon) {
-            toggleIcon.innerHTML = '<path d="M9 18l6-6-6-6" />';
-        }
-        
-        // Announce for screen readers
-        announceForScreenReader('Sidebar collapsed');
-    }
-    
-    // Save the state
-    localStorage.setItem('sidebarCollapsed', isCollapsed ? 'false' : 'true');
-    
-    // Update any sliders that might be affected by the layout change
-    try {
-        if (typeof updateSliderControls === 'function') {
-            updateSliderControls('popular');
-            updateSliderControls('recent');
-        }
-    } catch (e) {
-        console.error('Error updating sliders:', e);
-    }
-}
-
-/**
- * Set initial sidebar state from localStorage
- */
-function setInitialSidebarState() {
-    const sidebar = document.querySelector('.mindyhub-sidebar');
-    if (!sidebar) return;
-    
-    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-    const mainContent = document.querySelector('.main-content');
-    
-    console.log(`Setting initial sidebar state: ${isCollapsed ? 'collapsed' : 'expanded'}`);
-    
-    if (isCollapsed) {
-        sidebar.classList.add('collapsed');
-        document.body.classList.add('sidebar-collapsed');
-        
-        if (mainContent) {
-            mainContent.classList.add('expanded');
-            mainContent.style.marginLeft = '60px';
-            mainContent.style.width = 'calc(100% - 60px)';
-        }
-        
-        // Update toggle button icon
-        const toggleIcon = sidebar.querySelector('.mindyhub-sidebar-toggle svg');
-        if (toggleIcon) {
-            toggleIcon.innerHTML = '<path d="M9 18l6-6-6-6" />';
-        }
-    }
-}
-
-/**
- * Mark the active category based on URL parameters
- */
-function markActiveCategoryFromURL() {
+function markActiveCategory() {
+    // Get URL parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const category = urlParams.get('category');
-    const subcategory = urlParams.get('subcategory');
+    const categoryId = urlParams.get('category');
+    const subcategoryId = urlParams.get('subcategory');
     
-    console.log(`Marking active category from URL: category=${category}, subcategory=${subcategory}`);
-    
-    if (category) {
-        const categoryElement = document.querySelector(`.mindyhub-category[data-category="${category}"]`);
-        if (categoryElement) {
-            // Remove active class from all categories
-            document.querySelectorAll('.mindyhub-category').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            // Add active class to this category
-            categoryElement.classList.add('active');
-            
-            // Expand category
-            categoryElement.classList.add('expanded');
-            
-            // If subcategory is specified, mark it active
-            if (subcategory) {
-                const subcategoryElement = categoryElement.querySelector(`.mindyhub-subcategory[data-subcategory="${subcategory}"]`);
-                if (subcategoryElement) {
-                    // Remove active class from all subcategories
-                    document.querySelectorAll('.mindyhub-subcategory').forEach(item => {
-                        item.classList.remove('active');
-                    });
-                    
-                    // Add active class to this subcategory
-                    subcategoryElement.classList.add('active');
-                }
-            }
-        }
-    }
-}
-
-/**
- * Update sidebar categories with resource counts
- */
-function updateSidebarCategories(data = {}) {
-    try {
-        // Skip if sidebar not loaded
-        if (!document.querySelector('.mindyhub-sidebar-content')) {
-            console.log('Sidebar content not found, skipping category update');
-            return;
-        }
-        
-        console.log('Updating sidebar categories with resource counts');
-        
-        // Get all categories from loaded data
-        const allCategories = {};
-        
-        // Count resources for each category
-        Object.keys(data).forEach(category => {
-            if (!data[category]) return;
-            
-            const resources = data[category].resources || [];
-            allCategories[category] = resources.length;
-            console.log(`Category ${category}: ${resources.length} resources`);
-        });
-        
-        // Update counts in sidebar
-        Object.keys(allCategories).forEach(category => {
-            const count = allCategories[category];
-            const categoryElement = document.querySelector(`.mindyhub-category[data-category="${category}"]`);
-            
-            if (categoryElement) {
-                const countElement = categoryElement.querySelector('.mindyhub-category-count');
-                if (countElement) {
-                    // Update the count
-                    countElement.textContent = count;
-                    
-                    // Add visual indicator if there are resources
-                    if (count > 0) {
-                        countElement.classList.add('has-resources');
-                    } else {
-                        countElement.classList.remove('has-resources');
-                    }
-                }
-            }
-        });
-        
-        // Update subcategory counts
-        const subcategories = document.querySelectorAll('.mindyhub-subcategory');
-        subcategories.forEach(subcategoryElement => {
-            const categoryId = subcategoryElement.dataset.category;
-            const subcategoryId = subcategoryElement.dataset.subcategory;
-            
-            if (categoryId && subcategoryId && data[categoryId]) {
-                const resources = data[categoryId].resources || [];
-                const subcategoryResources = resources.filter(r => 
-                    r.subcategory && r.subcategory.toLowerCase() === subcategoryId.toLowerCase()
-                );
-                
-                const countElement = subcategoryElement.querySelector('.mindyhub-subcategory-count');
-                if (countElement) {
-                    countElement.textContent = subcategoryResources.length;
-                    
-                    if (subcategoryResources.length > 0) {
-                        countElement.classList.add('has-resources');
-                    } else {
-                        countElement.classList.remove('has-resources');
-                    }
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Error updating sidebar categories:', error);
-    }
-}
-
-/**
- * Show error in sidebar if loading fails
- */
-function showSidebarError() {
-    const sidebarContent = document.querySelector('.mindyhub-sidebar-content');
-    if (sidebarContent) {
-        sidebarContent.innerHTML = `
-            <div class="sidebar-error">
-                <p>Não foi possível carregar as categorias.</p>
-                <button class="refresh-button" onclick="window.location.reload()">
-                    Recarregar
-                </button>
-            </div>
-        `;
-    }
-}
-
-/**
- * Helper function to announce changes for screen readers
- */
-function announceForScreenReader(message) {
-    const announcement = document.createElement('div');
-    announcement.setAttribute('aria-live', 'polite');
-    announcement.className = 'mindyhub-sr-only';
-    announcement.textContent = message;
-    document.body.appendChild(announcement);
-    setTimeout(() => announcement.remove(), 1000);
-}
-
-// Initialize sidebar when DOM is fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM fully loaded, initializing sidebar...');
-    setTimeout(() => {
-        initSidebar();
-    }, 300);
-});
-
-// Also initialize if app is already loaded
-if (document.readyState === 'complete') {
-    console.log('Document already complete, initializing sidebar now');
-    setTimeout(() => {
-        initSidebar();
-    }, 300);
-}
-
-// ===== Search Functionality =====
-function initSearch() {
-    const searchForm = document.getElementById('search-form');
-    const searchInput = document.getElementById('search-input');
-    const heroSearchForm = document.getElementById('hero-search-form');
-    const heroSearchInput = document.getElementById('hero-search-input');
-    
-    // Initialize search autocomplete
-    if (searchInput) initSearchAutocomplete(searchInput);
-    if (heroSearchInput) initSearchAutocomplete(heroSearchInput);
-    
-    // Store recent searches
-    if (!localStorage.getItem('recentSearches')) {
-        localStorage.setItem('recentSearches', JSON.stringify([]));
-    }
-    
-    // Handle search form submission
-    if (searchForm) {
-        searchForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const query = searchInput.value.trim();
-            if (query) {
-                // Save search to recent searches
-                saveRecentSearch(query);
-                
-                // Perform search
-                performSearch(query);
-            }
-        });
-    }
-    
-    // Handle hero search form submission
-    if (heroSearchForm) {
-        heroSearchForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const query = heroSearchInput.value.trim();
-            if (query) {
-                // Save search to recent searches
-                saveRecentSearch(query);
-                
-                // Perform search
-                performSearch(query);
-            }
-        });
-    }
-}
-
-function initSearchAutocomplete(inputElement) {
-    // Create autocomplete container
-    const autocompleteContainer = document.createElement('div');
-    autocompleteContainer.className = 'search-autocomplete';
-    autocompleteContainer.style.display = 'none';
-    
-    // Insert after input
-    inputElement.parentNode.appendChild(autocompleteContainer);
-    
-    // Handle input events
-    inputElement.addEventListener('input', () => {
-        const query = inputElement.value.trim();
-        
-        if (query.length < 2) {
-            autocompleteContainer.style.display = 'none';
-            return;
-        }
-        
-        // Show loading state
-        autocompleteContainer.style.display = 'block';
-        autocompleteContainer.innerHTML = '<div class="autocomplete-loading">Buscando...</div>';
-        
-        // Get suggestions based on input
-        getSearchSuggestions(query)
-            .then(suggestions => {
-                if (suggestions.length === 0) {
-                    autocompleteContainer.style.display = 'none';
-                    return;
-                }
-                
-                // Render suggestions
-                renderSearchSuggestions(suggestions, autocompleteContainer, inputElement);
-            })
-            .catch(error => {
-                console.error('Error getting search suggestions:', error);
-                autocompleteContainer.style.display = 'none';
-            });
-    });
-    
-    // Hide suggestions when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!inputElement.contains(e.target) && !autocompleteContainer.contains(e.target)) {
-            autocompleteContainer.style.display = 'none';
-        }
-    });
-    
-    // Handle keyboard navigation in suggestions
-    inputElement.addEventListener('keydown', (e) => {
-        // Only process if suggestions are visible
-        if (autocompleteContainer.style.display !== 'block') return;
-        
-        const suggestions = autocompleteContainer.querySelectorAll('.autocomplete-suggestion');
-        if (suggestions.length === 0) return;
-        
-        // Find currently focused suggestion
-        const focusedIndex = Array.from(suggestions).findIndex(
-            suggestion => suggestion.classList.contains('focused')
-        );
-        
-        switch (e.key) {
-            case 'ArrowDown':
-                e.preventDefault();
-                // Focus next suggestion
-                if (focusedIndex === -1 || focusedIndex === suggestions.length - 1) {
-                    // Focus first if none focused or at end
-                    suggestions[0].classList.add('focused');
-                    if (focusedIndex !== -1) {
-                        suggestions[focusedIndex].classList.remove('focused');
-                    }
-                } else {
-                    // Focus next
-                    suggestions[focusedIndex].classList.remove('focused');
-                    suggestions[focusedIndex + 1].classList.add('focused');
-                }
-                break;
-                
-            case 'ArrowUp':
-                e.preventDefault();
-                // Focus previous suggestion
-                if (focusedIndex === -1 || focusedIndex === 0) {
-                    // Focus last if none focused or at beginning
-                    suggestions[suggestions.length - 1].classList.add('focused');
-                    if (focusedIndex !== -1) {
-                        suggestions[focusedIndex].classList.remove('focused');
-                    }
-                } else {
-                    // Focus previous
-                    suggestions[focusedIndex].classList.remove('focused');
-                    suggestions[focusedIndex - 1].classList.add('focused');
-                }
-                break;
-                
-            case 'Enter':
-                // Select focused suggestion
-                if (focusedIndex !== -1) {
-                    e.preventDefault();
-                    const suggestion = suggestions[focusedIndex].textContent;
-                    inputElement.value = suggestion;
-                    autocompleteContainer.style.display = 'none';
-                    
-                    // If in a form, submit it
-                    const form = inputElement.closest('form');
-                    if (form) {
-                        form.dispatchEvent(new Event('submit'));
-                    }
-                }
-                break;
-                
-            case 'Escape':
-                // Hide suggestions
-                autocompleteContainer.style.display = 'none';
-                break;
-        }
-    });
-}
-
-function getSearchSuggestions(query) {
-    return new Promise((resolve, reject) => {
-        // Get suggestions from recent searches
-        const recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
-        const recentMatches = recentSearches.filter(search => 
-            search.toLowerCase().includes(query.toLowerCase())
-        );
-        
-        // Get tag suggestions
-        const tagMatches = [];
-        
-        try {
-            // Get resource title suggestions
-            const titleMatches = [];
-            
-            // If data is available, search through it
-            if (typeof data !== 'undefined' && data) {
-                // Get tags from all resources
-                const allTags = getAllUniqueTags();
-                if (allTags && allTags.length) {
-                    allTags.forEach(tag => {
-                        if (tag.toLowerCase().includes(query.toLowerCase())) {
-                            tagMatches.push(tag);
-                        }
-                    });
-                }
-                
-                // Search resource titles
-                Object.keys(data).forEach(category => {
-                    if (category === 'categories') return;
-                    
-                    const categoryData = data[category];
-                    if (categoryData && categoryData.resources) {
-                        categoryData.resources.forEach(resource => {
-                            if (resource.title && resource.title.toLowerCase().includes(query.toLowerCase())) {
-                                titleMatches.push(resource.title);
-                            }
-                        });
-                    }
-                });
-            }
-            
-            // Combine and deduplicate suggestions
-            const allSuggestions = [...recentMatches, ...tagMatches, ...titleMatches]
-                .filter(Boolean) // Remove any undefined values
-                .filter((value, index, self) => self.indexOf(value) === index)
-                .slice(0, 5); // Limit to 5 suggestions
-            
-            resolve(allSuggestions);
-        } catch (error) {
-            console.error('Error generating search suggestions:', error);
-            // Still return recent searches if there was an error processing the data
-            resolve(recentMatches.slice(0, 5));
-        }
-    });
-}
-
-function renderSearchSuggestions(suggestions, container, inputElement) {
-    // Clear container
-    container.innerHTML = '';
-    
-    // Create suggestion elements
-    suggestions.forEach(suggestion => {
-        const suggestionElement = document.createElement('div');
-        suggestionElement.className = 'autocomplete-suggestion';
-        suggestionElement.textContent = suggestion;
-        
-        // Handle click on suggestion
-        suggestionElement.addEventListener('click', () => {
-            inputElement.value = suggestion;
-            container.style.display = 'none';
-            
-            // Submit the form
-            const form = inputElement.closest('form');
-            if (form) {
-                form.dispatchEvent(new Event('submit'));
-            }
-        });
-        
-        container.appendChild(suggestionElement);
-    });
-}
-
-function getAllUniqueTags() {
-    const tags = new Set();
-    
-    // Collect tags from all resources
-    Object.keys(data).forEach(category => {
-        if (category === 'categories') return;
-        
-        const categoryData = data[category];
-        if (categoryData && categoryData.resources) {
-            categoryData.resources.forEach(resource => {
-                if (resource.tags && Array.isArray(resource.tags)) {
-                    resource.tags.forEach(tag => tags.add(tag));
-                }
-            });
-        }
-    });
-    
-    return Array.from(tags);
-}
-
-function saveRecentSearch(query) {
-    // Get existing searches
-    let recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
-    
-    // Remove duplicate if exists
-    recentSearches = recentSearches.filter(search => search !== query);
-    
-    // Add to beginning
-    recentSearches.unshift(query);
-    
-    // Limit to 10 searches
-    if (recentSearches.length > 10) {
-        recentSearches = recentSearches.slice(0, 10);
-    }
-    
-    // Save back to localStorage
-    localStorage.setItem('recentSearches', JSON.stringify(recentSearches));
-}
-
-function performSearch(query) {
-    // Show loading state
-    const mainContent = document.querySelector('.main-content');
-    if (mainContent) {
-        mainContent.innerHTML = '<div class="loading-indicator">Buscando recursos...</div>';
-    }
-    
-    // Update page title
-    updatePageTitle(`Busca: ${query}`);
-    
-    // Update browser history
-    history.pushState(
-        {page: 'search', query: query},
-        `Busca: ${query} | Mindy®`,
-        `?search=${encodeURIComponent(query)}`
-    );
-    
-    // Ensure all category data is loaded
-    const categories = ['design', 'typography', 'tools', 'ai', '3d'];
-    const fetchPromises = [];
-    
-    categories.forEach(category => {
-        if (!data[category]) {
-            const promise = fetch(`data/${category}.json`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(categoryData => {
-                    data[category] = categoryData;
-                })
-                .catch(error => {
-                    console.error(`Error loading ${category} data:`, error);
-                });
-            
-            fetchPromises.push(promise);
-        }
-    });
-    
-    // Once all data is loaded, perform search
-    Promise.all(fetchPromises)
-        .then(() => {
-            const results = searchResources(query);
-            displaySearchResults(query, results);
-        })
-        .catch(error => {
-            console.error('Error during search:', error);
-            if (mainContent) {
-                mainContent.innerHTML = `
-                    <div class="error-message">
-                        <h2>Erro na busca</h2>
-                        <p>Ocorreu um erro ao buscar por "${query}". Por favor, tente novamente mais tarde.</p>
-                        <button class="btn-primary" onclick="resetToHomePage()">Voltar para a página inicial</button>
-                    </div>
-                `;
-            }
-        });
-}
-
-function searchResources(query) {
-    const results = [];
-    const queryLower = query.toLowerCase();
-    
-    // Search in all categories
-    Object.keys(data).forEach(categoryId => {
-        const categoryData = data[categoryId];
-        
-        // Search in main resources
-        if (categoryData.resources) {
-            categoryData.resources.forEach(resource => {
-                if (matchesSearch(resource, queryLower)) {
-                    results.push({
-                        ...resource,
-                        category: categoryId
-                    });
-                }
-            });
-        }
-        
-        // Search in subcategories
-        if (categoryData.subcategories) {
-            categoryData.subcategories.forEach(subcategory => {
-                // Check for both resources and items arrays (different data structures)
-                const resources = subcategory.resources || subcategory.items || [];
-                
-                resources.forEach(resource => {
-                    if (matchesSearch(resource, queryLower)) {
-                        results.push({
-                            ...resource,
-                            category: categoryId,
-                            subcategory: subcategory.id
-                        });
-                    }
-                });
-            });
-        }
-    });
-    
-    return results;
-}
-
-function matchesSearch(resource, query) {
-    // Check if resource matches search query
-    return (
-        resource.title.toLowerCase().includes(query) ||
-        (resource.description && resource.description.toLowerCase().includes(query)) ||
-        (resource.tags && resource.tags.some(tag => tag.toLowerCase().includes(query)))
-    );
-}
-
-function displaySearchResults(query, results) {
-    const mainContent = document.querySelector('.main-content');
-    
-    if (mainContent) {
-        // Clear main content
-        mainContent.innerHTML = '';
-        
-        // Create breadcrumb
-        const breadcrumb = createBreadcrumb([
-            { text: 'Início', link: '#', icon: 'assets/icons/icon-home.svg', onClick: resetToHomePage },
-            { text: `Resultados para "${query}"`, link: null }
-        ]);
-        mainContent.appendChild(breadcrumb);
-        
-        // Create search results section
-        const searchResults = document.createElement('section');
-        searchResults.classList.add('search-results');
-        
-        const resultsHeader = document.createElement('h2');
-        resultsHeader.classList.add('section-header');
-        resultsHeader.textContent = `Resultados para "${query}"`;
-        searchResults.appendChild(resultsHeader);
-        
-        if (results.length > 0) {
-            const resultsCount = document.createElement('p');
-            resultsCount.classList.add('results-count');
-            resultsCount.textContent = `${results.length} ${results.length === 1 ? 'resultado encontrado' : 'resultados encontrados'}`;
-            searchResults.appendChild(resultsCount);
-            
-            const resourcesGrid = document.createElement('div');
-            resourcesGrid.classList.add('resource-grid', 'stagger-fade-in');
-            
-            results.forEach(resource => {
-                const resourceItem = createResourceItem(resource);
-                resourcesGrid.appendChild(resourceItem);
-            });
-            
-            searchResults.appendChild(resourcesGrid);
-        } else {
-            const noResults = document.createElement('div');
-            noResults.classList.add('no-results');
-            
-            const noResultsText = document.createElement('p');
-            noResultsText.textContent = `Nenhum resultado encontrado para "${query}". Tente outra busca.`;
-            
-            noResults.appendChild(noResultsText);
-            searchResults.appendChild(noResults);
-        }
-        
-        mainContent.appendChild(searchResults);
-    }
-}
-
-// ===== Tag Functionality =====
-function initTags() {
-    const tagContainer = document.getElementById('suggested-tags');
-    if (tagContainer) {
-        tagContainer.addEventListener('click', (e) => {
-            const tag = e.target.closest('.tag');
-            if (tag) {
-                const tagValue = tag.dataset.tag;
-                if (tagValue) {
-                    // Set the search input value
-                    const heroSearchInput = document.getElementById('hero-search-input');
-                    if (heroSearchInput) {
-                        heroSearchInput.value = tagValue;
-                        performSearch(tagValue);
-                    }
-                }
-            }
-        });
-    }
-}
-
-// ===== Sliders =====
-function initSliders() {
-    const sliderControls = document.querySelectorAll('.slider-control');
-    
-    sliderControls.forEach(control => {
-        control.addEventListener('click', () => {
-            const sliderId = control.dataset.slider;
-            const direction = control.classList.contains('prev') ? -1 : 1;
-            
-            if (sliderId) {
-                const slider = document.querySelector(`.resources-slider[data-slider="${sliderId}"]`);
-                if (slider) {
-                    const track = slider.querySelector('.slider-track');
-                    const items = track.querySelectorAll('.resource-item');
-                    
-                    if (items.length > 0) {
-                        // Calculate how many items to show based on viewport width
-                        const itemWidth = items[0].offsetWidth + parseInt(window.getComputedStyle(items[0]).marginRight);
-                        const visibleWidth = slider.offsetWidth;
-                        const itemsPerPage = Math.floor(visibleWidth / itemWidth);
-                        
-                        // Calculate current scroll position
-                        const currentScroll = track.scrollLeft;
-                        const scrollAmount = itemWidth * itemsPerPage * direction;
-                        
-                        // Smooth scroll to new position
-                        track.scrollTo({
-                            left: currentScroll + scrollAmount,
-                            behavior: 'smooth'
-                        });
-                        
-                        // Update button states
-                        updateSliderControls(sliderId);
-                    }
-                }
-            }
-        });
-    });
-    
-    // Initialize slider controls state
-    document.querySelectorAll('.resources-slider').forEach(slider => {
-        const sliderId = slider.dataset.slider;
-        if (sliderId) {
-            // Add scroll event listener to update controls
-            slider.querySelector('.slider-track').addEventListener('scroll', () => {
-                updateSliderControls(sliderId);
-            });
-            
-            // Initial update
-            updateSliderControls(sliderId);
-        }
-    });
-}
-
-function updateSliderControls(sliderId) {
-    const slider = document.querySelector(`.resources-slider[data-slider="${sliderId}"]`);
-    if (slider) {
-        const track = slider.querySelector('.slider-track');
-        const prevButton = document.querySelector(`.slider-control.prev[data-slider="${sliderId}"]`);
-        const nextButton = document.querySelector(`.slider-control.next[data-slider="${sliderId}"]`);
-        
-        if (track && prevButton && nextButton) {
-            // Check if we can scroll left
-            prevButton.disabled = track.scrollLeft <= 0;
-            
-            // Check if we can scroll right
-            const canScrollRight = track.scrollLeft < (track.scrollWidth - track.clientWidth - 5); // 5px tolerance
-            nextButton.disabled = !canScrollRight;
-        }
-    }
-}
-
-// ===== Bento Grid =====
-function initBentoGrid() {
-    console.log('Initializing bento grid...');
-    const bentoItems = document.querySelectorAll('.bento-item');
-    
-    console.log(`Found ${bentoItems.length} bento items`);
-    
-    bentoItems.forEach(item => {
-        const category = item.dataset.category;
-        console.log(`Setting up bento item for category: ${category}`);
-        
-        // Remove existing event listeners if any
-        const newItem = item.cloneNode(true);
-        item.parentNode.replaceChild(newItem, item);
-        
-        // Add click event listener
-        newItem.addEventListener('click', (e) => {
-            e.preventDefault();
-            console.log(`Bento item clicked: ${category}`);
-            
-            if (category) {
-                // Add a subtle loading animation
-                newItem.classList.add('loading');
-                
-                // Load the category page immediately
-                loadCategoryPage(category);
-            }
-        });
-        
-        // Add keyboard accessibility
-        newItem.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                console.log(`Bento item activated via keyboard: ${category}`);
-                
-                if (category) {
-                    // Add a subtle loading animation
-                    newItem.classList.add('loading');
-                    
-                    // Load the category page immediately
-                    loadCategoryPage(category);
-                }
-            }
-        });
-    });
-}
-
-// ===== Modal =====
-function initModal() {
-    const modal = document.getElementById('modal');
-    const closeBtn = modal?.querySelector('.modal-close');
-    const closeBottomBtn = modal?.querySelector('.modal-close-bottom');
-    
-    // Close modal when clicking the close button
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            closeModal();
-        });
-    }
-    
-    // Close modal when clicking the bottom close button
-    if (closeBottomBtn) {
-        closeBottomBtn.addEventListener('click', () => {
-            closeModal();
-        });
-    }
-    
-    // Close modal when clicking outside
-    if (modal) {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                closeModal();
-            }
-        });
-    }
-    
-    // Close modal with Escape key
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal?.classList.contains('active')) {
-            closeModal();
-        }
-    });
-}
-
-function openModal(title, content) {
-    const modal = document.getElementById('modal');
-    const modalTitle = modal?.querySelector('.modal-title');
-    const modalContent = modal?.querySelector('.modal-content');
-    const modalFooter = modal?.querySelector('.modal-footer');
-    
-    if (modal && modalTitle && modalContent) {
-        // Set title
-        modalTitle.textContent = title;
-        
-        // Clear and set content
-        modalContent.innerHTML = '';
-        
-        if (typeof content === 'string') {
-            modalContent.innerHTML = content;
-        } else {
-            modalContent.appendChild(content);
-        }
-        
-        // Show/hide footer based on whether we need action buttons
-        if (modalFooter) {
-            const hasActionButtons = modalFooter.querySelector('.modal-action-button') !== null;
-            modalFooter.style.display = hasActionButtons ? 'flex' : 'none';
-        }
-        
-        // Add active class to show modal with animation
-        modal.classList.add('active');
-        
-        // Prevent body scrolling when modal is open
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-function closeModal() {
-    const modal = document.getElementById('modal');
-    
-    if (modal) {
-        // Simple close without animations to avoid bugs
-        modal.classList.remove('active');
-        
-        // Clear modal content immediately
-        const modalContent = modal.querySelector('.modal-content');
-        if (modalContent) {
-            modalContent.innerHTML = '';
-        }
-        
-        // Restore body scrolling
-        document.body.style.overflow = '';
-        
-        // Update URL if needed
-        if (window.location.search.includes('resource=')) {
-            // Remove resource parameter from URL
-            const urlParams = new URLSearchParams(window.location.search);
-            urlParams.delete('resource');
-            
-            const newUrl = urlParams.toString() 
-                ? `?${urlParams.toString()}`
-                : window.location.pathname;
-                
-            history.replaceState(null, document.title, newUrl);
-        }
-    }
-}
-
-function showResourceModal(resource) {
-    // Instead of showing a modal, directly open the resource URL
-    if (resource && resource.url) {
-        window.open(resource.url, '_blank', 'noopener,noreferrer');
-        trackResourceView(resource);
+    if (!categoryId) {
         return;
     }
     
-    // Show error toast if URL is missing
-    showToast('Não foi possível abrir o recurso. URL inválida.', 'error');
-}
-
-function shareResource(resource) {
-    // Toggle share options visibility
-    const modal = document.getElementById('modal');
-    const shareOptions = modal?.querySelector('.share-options');
-    
-    if (shareOptions) {
-        const isVisible = shareOptions.style.display === 'block';
-        shareOptions.style.display = isVisible ? 'none' : 'block';
-        
-        // Scroll to share options if showing
-        if (!isVisible) {
-            setTimeout(() => {
-                shareOptions.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 100);
-        }
-    }
-}
-
-function shareResourceVia(resource, platform) {
-    // Create share URL
-    const resourceUrl = new URL(window.location.href);
-    resourceUrl.searchParams.set('resource', resource.id);
-    const shareUrl = resourceUrl.toString();
-    
-    // Share text
-    const shareText = `Confira este recurso: ${resource.title} | Mindy®`;
-    
-    // Handle different platforms
-    switch (platform) {
-        case 'copy':
-            // Copy to clipboard
-            navigator.clipboard.writeText(shareUrl)
-                .then(() => {
-                    showToast('Link copiado para a área de transferência!');
-                    
-                    // Animate the share button to give visual feedback
-                    const shareButtons = document.querySelectorAll('.share-button');
-                    shareButtons.forEach(btn => {
-                        if (btn.closest('.resource-item').dataset.id === resource.id) {
-                            btn.classList.add('shared');
-                            setTimeout(() => {
-                                btn.classList.remove('shared');
-                            }, 2000);
-                        }
-                    });
-                })
-                .catch(err => {
-                    console.error('Erro ao copiar link:', err);
-                    showToast('Não foi possível copiar o link. Tente novamente.');
-                });
-            break;
-            
-        case 'whatsapp':
-            window.open(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`, '_blank');
-            break;
-            
-        case 'telegram':
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
-            break;
-            
-        case 'twitter':
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
-            break;
-    }
-    
-    // Hide share options after sharing
-    const modal = document.getElementById('modal');
-    const shareOptions = modal?.querySelector('.share-options');
-    if (shareOptions) {
-        shareOptions.style.display = 'none';
-    }
-}
-
-// === Toast Notification Function ===
-function showToast(message, type = 'info') {
-    // Create toast element if it doesn't exist
-    let toast = document.getElementById('toast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'toast';
-        document.body.appendChild(toast);
-    }
-    
-    // Set type class
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    
-    // Show the toast
-    toast.classList.add('show');
-    
-    // Hide after 3 seconds
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
-
-// ===== Data Loading =====
-const data = {};
-
-// Define fallback data for categories
-const fallbackData = {
-    categories: [
-        {
-            id: 'design',
-            name: 'Design',
-            icon: 'icon-design.svg',
-            description: 'Recursos de design para UI/UX e gráfico',
-            color: '#2563eb',
-            subcategories: [
-                {
-                    id: 'ui-kits',
-                    name: 'UI Kits',
-                    description: 'Conjuntos de componentes e templates para interfaces'
-                },
-                {
-                    id: 'mockups',
-                    name: 'Mockups',
-                    description: 'Templates para apresentação de designs'
-                },
-                {
-                    id: 'inspiration',
-                    name: 'Inspiração',
-                    description: 'Referências e exemplos de design'
-                }
-            ]
-        },
-        {
-            id: 'typography',
-            name: 'Tipografia',
-            icon: 'icon-typography.svg',
-            description: 'Fontes e recursos tipográficos',
-            color: '#0891b2',
-            subcategories: [
-                {
-                    id: 'fonts',
-                    name: 'Fontes',
-                    description: 'Fontes gratuitas e premium'
-                },
-                {
-                    id: 'pairings',
-                    name: 'Combinações',
-                    description: 'Sugestões de combinações de fontes'
-                }
-            ]
-        },
-        {
-            id: 'tools',
-            name: 'Ferramentas',
-            icon: 'icon-tools.svg',
-            description: 'Ferramentas úteis para designers e desenvolvedores',
-            color: '#db2777',
-            subcategories: [
-                {
-                    id: 'design-tools',
-                    name: 'Design',
-                    description: 'Ferramentas para design gráfico e UI/UX'
-                },
-                {
-                    id: 'dev-tools',
-                    name: 'Desenvolvimento',
-                    description: 'Ferramentas para desenvolvedores'
-                }
-            ]
-        },
-        {
-            id: 'ai',
-            name: 'IA',
-            icon: 'icon-ai.svg',
-            description: 'Inteligência artificial e ferramentas generativas',
-            color: '#9333ea',
-            subcategories: [
-                {
-                    id: 'text-ai',
-                    name: 'Texto',
-                    description: 'IA para geração e edição de texto'
-                },
-                {
-                    id: 'image-ai',
-                    name: 'Imagem',
-                    description: 'IA para criação e edição de imagens'
-                }
-            ]
-        },
-        {
-            id: '3d',
-            name: '3D',
-            icon: 'icon-3d.svg',
-            description: 'Recursos para modelagem e design 3D',
-            color: '#ca8a04',
-            subcategories: [
-                {
-                    id: '3d-models',
-                    name: 'Modelos',
-                    description: 'Modelos 3D gratuitos e premium'
-                },
-                {
-                    id: '3d-tools',
-                    name: 'Ferramentas',
-                    description: 'Software e ferramentas para 3D'
-                }
-            ]
-        }
-    ]
-};
-
-function loadData() {
-    return new Promise((resolve, reject) => {
-        // Create a generic error handler for fetch requests
-        const handleFetchError = (error, resourceType, retryCount = 0, maxRetries = 3) => {
-            console.error(`Error loading ${resourceType}:`, error);
-            
-            if (retryCount < maxRetries) {
-                console.log(`Retrying ${resourceType} load... (${retryCount + 1}/${maxRetries})`);
-                setTimeout(() => {
-                    loadDataWithRetry(resourceType, retryCount + 1, maxRetries);
-                }, 1000 * (retryCount + 1)); // Exponential backoff
-            } else {
-                console.log(`Using fallback data for ${resourceType}`);
-                
-                // Use fallback data if available
-                if (resourceType === 'categories' && fallbackData.categories) {
-                    data.categories = fallbackData.categories;
-                    updateSidebarCategories(fallbackData.categories);
-                    showToast(`Using offline categories data.`, 'info');
-                } else {
-                    // For other resource types
-                    showToast(`Failed to load ${resourceType} data. Some content may be unavailable.`, 'warning');
-                }
-                
-                // Check if we have loaded enough data to proceed
-                if (data.categories) {
-                    // We can continue if at least categories are loaded
-                    resolve();
-                } else {
-                    // Critical failure - we need at least categories
-                    reject(new Error('Failed to load essential data'));
-                }
-            }
-        };
-        
-        // Fetch with retry logic
-        const loadDataWithRetry = (resourceType, retryCount = 0, maxRetries = 3) => {
-            fetch(`data/${resourceType}.json`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(responseData => {
-                    data[resourceType] = responseData;
-                    
-                    // If this is categories, also initialize the sidebar
-                    if (resourceType === 'categories' && responseData) {
-                        updateSidebarCategories(responseData);
-                    }
-                    
-                    // Resolve if all needed data is loaded
-                    checkDataLoadComplete(resolve);
-                })
-                .catch(error => handleFetchError(error, resourceType, retryCount, maxRetries));
-        };
-        
-        // Helper function to check if we have loaded enough data to proceed
-        const checkDataLoadComplete = (resolveCallback) => {
-            // If we have at least categories and a few resource types, we can proceed
-            if (data.categories && 
-                (data.design || data.typography || data.tools || data.ai || data['3d'])) {
-                resolveCallback();
-            }
-        };
-        
-        // Start with categories, which is most important
-        loadDataWithRetry('categories');
-        
-        // Load other data types in parallel
-        const otherDataTypes = ['design', 'typography', 'tools', 'ai', '3d'];
-        otherDataTypes.forEach(type => loadDataWithRetry(type));
-    });
-}
-
-function setupHomeNavigation() {
-    // Set up home link in breadcrumb
-    const homeLinks = document.querySelectorAll('.home-link, .breadcrumb-link.home-link');
-    homeLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            resetToHomePage();
-        });
-    });
-    
-    // Set up logo as home link
-    const logo = document.querySelector('.logo');
-    if (logo) {
-        logo.addEventListener('click', (e) => {
-            e.preventDefault();
-            resetToHomePage();
-        });
-    }
-}
-
-function loadCategories() {
-    return new Promise((resolve, reject) => {
-        // First check if categories are already loaded in the data object
-        if (data.categories) {
-            console.log('Using already loaded categories data');
-            updateSidebarCategories(data.categories);
-            resolve(data.categories);
+    try {
+        // Find category element
+        const categoryElement = document.querySelector(`.mindyhub-category[data-id="${categoryId}"]`);
+        if (!categoryElement) {
             return;
         }
         
-        fetch('data/categories.json')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(categoriesData => {
-                // Store categories data
-                data.categories = categoriesData;
+        // Mark category as active
+        const categoryHeader = categoryElement.querySelector('.mindyhub-category-header');
+        if (categoryHeader) {
+            categoryHeader.classList.add('active');
+        }
+        
+        // If there's a subcategory, expand the category and mark the subcategory as active
+        if (subcategoryId) {
+            // Expand category content if it's not already expanded
+            const categoryContent = categoryElement.querySelector('.mindyhub-category-content');
+            if (categoryContent && !categoryContent.classList.contains('expanded')) {
+                categoryContent.classList.add('expanded');
+                categoryHeader.classList.add('expanded');
+            }
+            
+            // Find subcategory element and mark it as active
+            const subcategoryElement = categoryElement.querySelector(`.mindyhub-subcategory[data-id="${subcategoryId}"]`);
+            if (subcategoryElement) {
+                subcategoryElement.classList.add('active');
                 
-                // Update sidebar with categories
-                updateSidebarCategories(categoriesData);
-                
-                resolve(categoriesData);
-            })
-            .catch(error => {
-                console.error('Error loading categories:', error);
-                
-                // Use fallback data
-                console.log('Using fallback category data');
-                
-                if (!fallbackData.categories) {
-                    reject(new Error('No fallback data available for categories'));
-                    return;
-                }
-                
-                // Store fallback categories data
-                data.categories = fallbackData.categories;
-                
-                // Update sidebar with fallback categories
-                updateSidebarCategories(fallbackData.categories);
-                
-                // Show a notification to the user
-                showToast('Using offline category data.', 'info');
-                
-                resolve(fallbackData.categories);
-            });
-    });
-}
-
-// ===== Page Title Management =====
-function updatePageTitle(title) {
-    // Update the page title with the provided title or default to Mindy®
-    document.title = title ? `${title} | Mindy®` : 'Mindy® | Biblioteca Digital';
-}
-
-// Function to open a resource modal directly from URL
-function openResourceModal(resourceId) {
-    // Show loading state
-    const mainContent = document.querySelector('.main-content');
-    if (mainContent) {
-        mainContent.innerHTML = '<div class="loading-indicator">Carregando recurso...</div>';
+                // Scroll subcategory into view
+                subcategoryElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+    } catch (error) {
+        console.error('Error marking active category:', error);
     }
-    
-    // Find the resource across all categories
-    findResourceById(resourceId)
-        .then(result => {
-            if (result) {
-                const { resource, categoryId, subcategoryId } = result;
-                
-                // First load the appropriate subcategory or category page
-                if (subcategoryId) {
-                    loadSubcategoryContent(categoryId, subcategoryId);
-                } else {
-                    loadCategoryPage(categoryId);
-                }
-                
-                // Open the resource URL directly
-                if (resource.url) {
-                    window.open(resource.url, '_blank', 'noopener,noreferrer');
-                    trackResourceView(resource);
-                    
-                    // Show toast notification
-                    showToast(`Abrindo recurso: ${resource.title}`, 'info');
-                    
-                    // Update page title
-                    updatePageTitle(`${getCategoryName(categoryId)}`);
-                } else {
-                    showToast('Não foi possível abrir o recurso. URL inválida.', 'error');
-                }
-            } else {
-                // Resource not found
-                if (mainContent) {
-                    mainContent.innerHTML = `
-                        <div class="error-message">
-                            <h2>Recurso não encontrado</h2>
-                            <p>O recurso solicitado não foi encontrado. Ele pode ter sido removido ou o link está incorreto.</p>
-                            <button class="btn-primary" onclick="resetToHomePage()">Voltar para a página inicial</button>
-                        </div>
-                    `;
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Error finding resource:', error);
-            if (mainContent) {
-                mainContent.innerHTML = `
-                    <div class="error-message">
-                        <h2>Erro ao carregar recurso</h2>
-                        <p>Ocorreu um erro ao carregar o recurso solicitado. Por favor, tente novamente mais tarde.</p>
-                        <button class="btn-primary" onclick="resetToHomePage()">Voltar para a página inicial</button>
-                    </div>
-                `;
-            }
-        });
-}
-
-// Function to find a resource by ID across all categories
-function findResourceById(resourceId) {
-    return new Promise((resolve, reject) => {
-        const categories = ['design', 'typography', 'tools', 'ai', '3d'];
-        const fetchPromises = [];
-        
-        // Load any missing category data
-        categories.forEach(categoryId => {
-            if (!data[categoryId]) {
-                const promise = fetch(`data/${categoryId}.json`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(categoryData => {
-                        data[categoryId] = categoryData;
-                    })
-                    .catch(error => {
-                        console.error(`Error loading ${categoryId} data:`, error);
-                    });
-                
-                fetchPromises.push(promise);
-            }
-        });
-        
-        // Once all data is loaded, search for the resource
-        Promise.all(fetchPromises)
-            .then(() => {
-                // Search through all loaded categories
-                for (const categoryId in data) {
-                    const categoryData = data[categoryId];
-                    
-                    // Check resources directly in the category
-                    if (categoryData.resources) {
-                        const resource = categoryData.resources.find(r => r.id === resourceId);
-                        if (resource) {
-                            resolve({ resource, categoryId });
-                            return;
-                        }
-                    }
-                    
-                    // Check resources in subcategories
-                    if (categoryData.subcategories) {
-                        for (const subcategory of categoryData.subcategories) {
-                            if (subcategory.resources) {
-                                const resource = subcategory.resources.find(r => r.id === resourceId);
-                                if (resource) {
-                                    resolve({ resource, categoryId, subcategoryId: subcategory.id });
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // Resource not found
-                resolve(null);
-            })
-            .catch(error => {
-                reject(error);
-            });
-    });
 }
 
 // ===== Keyboard Navigation =====
@@ -2372,42 +855,42 @@ function initSaveResourceFeature() {
 function toggleSavedResource(resourceId, buttonElement) {
     try {
         // Get current saved resources data
-        const savedResources = JSON.parse(localStorage.getItem('savedResources') || '[]');
-        const likeCounts = JSON.parse(localStorage.getItem('likeCounts') || '{}');
-        
-        // Check if resource is already saved
-        const index = savedResources.indexOf(resourceId);
+    const savedResources = JSON.parse(localStorage.getItem('savedResources') || '[]');
+    const likeCounts = JSON.parse(localStorage.getItem('likeCounts') || '{}');
+    
+    // Check if resource is already saved
+    const index = savedResources.indexOf(resourceId);
         const isSaved = index !== -1;
-        
+    
         // Update saved resources array
         if (!isSaved) {
-            // Save resource
-            savedResources.push(resourceId);
-            
-            // Increment like count
-            likeCounts[resourceId] = (likeCounts[resourceId] || 0) + 1;
-            
-            // Show toast
-            showToast('Resource saved!');
-        } else {
-            // Remove resource
-            savedResources.splice(index, 1);
-            
-            // Decrement like count
-            if (likeCounts[resourceId] > 0) {
-                likeCounts[resourceId]--;
-            }
-            
-            // Show toast
-            showToast('Resource removed from saved');
+        // Save resource
+        savedResources.push(resourceId);
+        
+        // Increment like count
+        likeCounts[resourceId] = (likeCounts[resourceId] || 0) + 1;
+        
+        // Show toast
+        showToast('Resource saved!');
+    } else {
+        // Remove resource
+        savedResources.splice(index, 1);
+        
+        // Decrement like count
+        if (likeCounts[resourceId] > 0) {
+            likeCounts[resourceId]--;
         }
         
-        // Save back to localStorage
-        localStorage.setItem('savedResources', JSON.stringify(savedResources));
-        localStorage.setItem('likeCounts', JSON.stringify(likeCounts));
-        
-        // Update all instances of this resource on the page
-        updateResourceLikeCount(resourceId, likeCounts[resourceId] || 0);
+        // Show toast
+        showToast('Resource removed from saved');
+    }
+    
+    // Save back to localStorage
+    localStorage.setItem('savedResources', JSON.stringify(savedResources));
+    localStorage.setItem('likeCounts', JSON.stringify(likeCounts));
+    
+    // Update all instances of this resource on the page
+    updateResourceLikeCount(resourceId, likeCounts[resourceId] || 0);
         
         // Update all save buttons for this resource
         document.querySelectorAll(`.save-button[data-id="${resourceId}"]`).forEach(button => {
@@ -2633,15 +1116,15 @@ function initCollapsibleSidebar() {
     let collapseButton = sidebar.querySelector('.collapse-sidebar-btn');
     if (!collapseButton) {
         collapseButton = document.createElement('button');
-        collapseButton.className = 'collapse-sidebar-btn';
-        collapseButton.innerHTML = '<span class="collapse-icon"></span>';
+    collapseButton.className = 'collapse-sidebar-btn';
+    collapseButton.innerHTML = '<span class="collapse-icon"></span>';
         collapseButton.setAttribute('aria-label', 'Toggle sidebar');
         collapseButton.setAttribute('title', 'Toggle sidebar');
-        
-        if (sidebarHeader) {
-            sidebarHeader.appendChild(collapseButton);
-        } else {
-            sidebar.insertBefore(collapseButton, sidebar.firstChild);
+    
+    if (sidebarHeader) {
+        sidebarHeader.appendChild(collapseButton);
+    } else {
+        sidebar.insertBefore(collapseButton, sidebar.firstChild);
         }
     }
     
@@ -2721,8 +1204,8 @@ function toggleSidebar() {
     
     // Update any sliders that might be affected by the layout change
     try {
-        updateSliderControls('popular');
-        updateSliderControls('recent');
+    updateSliderControls('popular');
+    updateSliderControls('recent');
     } catch (e) {
         console.error('Error updating sliders:', e);
     }
@@ -2752,7 +1235,7 @@ function toggleAdminPanel() {
  * Initialize admin panel with keyboard shortcut
  */
 function initAdminPanel() {
-    // Add keyboard shortcut (Ctrl+Shift+A) to toggle admin panel
+    // Add keyboard shortcut to toggle admin panel
     document.addEventListener('keydown', function(event) {
         // Check if Ctrl+Shift+A was pressed
         if (event.ctrlKey && event.shiftKey && event.key === 'A') {
@@ -2760,6 +1243,17 @@ function initAdminPanel() {
             toggleAdminPanel();
         }
     });
+    
+    // Set up event listeners for admin panel buttons
+    document.getElementById('saveConfigBtn').addEventListener('click', saveSupabaseConfig);
+    document.getElementById('uploadToSupabaseBtn').addEventListener('click', handleUploadToSupabase);
+    document.getElementById('syncFromSupabaseBtn').addEventListener('click', handleSyncFromSupabase);
+    
+    // Remove the toggle data source button as we're only using Supabase now
+    const toggleDataSourceBtn = document.getElementById('toggleDataSourceBtn');
+    if (toggleDataSourceBtn) {
+        toggleDataSourceBtn.style.display = 'none';
+    }
 }
 
 function loadSupabaseConfig() {
@@ -2768,6 +1262,152 @@ function loadSupabaseConfig() {
     
     document.getElementById('supabaseUrl').value = supabaseUrl;
     document.getElementById('supabaseKey').value = supabaseKey;
+}
+
+/**
+ * Save Supabase configuration to localStorage
+ */
+function saveSupabaseConfig() {
+    const supabaseUrl = document.getElementById('supabaseUrl').value.trim();
+    const supabaseKey = document.getElementById('supabaseKey').value.trim();
+    
+    localStorage.setItem('supabaseUrl', supabaseUrl);
+    localStorage.setItem('supabaseKey', supabaseKey);
+    
+    updateAdminStatus('Configuration saved successfully! Reloading page to apply changes...');
+    
+    // Reload the page to apply the new configuration
+    setTimeout(() => {
+        window.location.reload();
+    }, 1500);
+}
+
+/**
+ * Handle upload to Supabase button click
+ */
+function handleUploadToSupabase() {
+    updateAdminStatus('Uploading data to Supabase...');
+    
+    // Check if uploadCSVToSupabase function exists (from csv-to-supabase.js)
+    if (typeof window.uploadCSVToSupabase === 'function') {
+        try {
+            window.uploadCSVToSupabase()
+                .then(() => {
+                    updateAdminStatus('Data uploaded to Supabase successfully!');
+                })
+                .catch(error => {
+                    updateAdminStatus(`Error uploading to Supabase: ${error.message}`);
+                    console.error('Error uploading to Supabase:', error);
+                });
+        } catch (error) {
+            updateAdminStatus(`Error uploading to Supabase: ${error.message}`);
+            console.error('Error uploading to Supabase:', error);
+        }
+    } else {
+        updateAdminStatus('Upload function not available. Make sure csv-to-supabase.js is loaded.');
+    }
+}
+
+/**
+ * Handle sync from Supabase button click
+ */
+async function handleSyncFromSupabase() {
+    updateAdminStatus('Syncing data from Supabase...');
+    
+    try {
+        // Check if Supabase client is available
+        if (typeof supabase === 'undefined') {
+            throw new Error('Supabase client not found');
+        }
+        
+        // Get Supabase credentials
+        const supabaseUrl = localStorage.getItem('supabaseUrl');
+        const supabaseKey = localStorage.getItem('supabaseKey');
+        
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error('Supabase credentials not set');
+        }
+        
+        // Create Supabase client
+        const { createClient } = supabase;
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+        
+        // Get all data from Supabase
+        
+        // 1. Get categories
+        const { data: categories, error: categoriesError } = await supabaseClient
+            .from('categories')
+            .select('*');
+            
+        if (categoriesError) throw categoriesError;
+        
+        // 2. Get subcategories
+        const { data: subcategories, error: subcategoriesError } = await supabaseClient
+            .from('subcategories')
+            .select('*');
+            
+        if (subcategoriesError) throw subcategoriesError;
+        
+        // 3. Get resources
+        const { data: resources, error: resourcesError } = await supabaseClient
+            .from('resources')
+            .select('*');
+            
+        if (resourcesError) throw resourcesError;
+        
+        // Transform data to CSV format
+        const csvRows = [];
+        
+        // Add header row
+        csvRows.push('category,subcategory,title,description,url,tags');
+        
+        // Add data rows
+        resources.forEach(resource => {
+            const tags = Array.isArray(resource.tags) ? resource.tags.join(',') : '';
+            // Escape commas and quotes in fields
+            const title = `"${resource.title.replace(/"/g, '""')}"`;
+            const description = `"${resource.description ? resource.description.replace(/"/g, '""') : ''}"`;
+            const url = `"${resource.url.replace(/"/g, '""')}"`;
+            const tagsFormatted = `"${tags.replace(/"/g, '""')}"`;
+            
+            csvRows.push(`${resource.category_id},${resource.subcategory_id},${title},${description},${url},${tagsFormatted}`);
+        });
+        
+        // Create CSV content
+        const csvContent = csvRows.join('\n');
+        
+        // Create blob and download link
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'database-content.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        updateAdminStatus('Data synced from Supabase successfully! CSV file downloaded.');
+    } catch (error) {
+        updateAdminStatus(`Error syncing from Supabase: ${error.message}`);
+        console.error('Error syncing from Supabase:', error);
+    }
+}
+
+/**
+ * Update admin status message
+ * @param {string} message - The message to display
+ */
+function updateAdminStatus(message) {
+    const statusElement = document.getElementById('adminStatus');
+    if (statusElement) {
+        statusElement.textContent = message;
+        
+        // Clear the message after 5 seconds
+        setTimeout(() => {
+            statusElement.textContent = '';
+        }, 5000);
+    }
 }
 
 /**
@@ -2830,6 +1470,7 @@ function showResourcePreview(url) {
 // Initialize thumbnails when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     initResourceThumbnails();
+    initAdminPanel(); // Initialize the admin panel
 });
 
 function toggleMobileSidebar() {
@@ -2920,4 +1561,1307 @@ function refreshSidebar() {
     }, 100);
     
     return 'Sidebar refresh initiated!';
+}
+
+// Load data first
+async function loadData() {
+    try {
+        // Import the data module
+        const dataModule = await import('./modules/data.js');
+        // Call the loadData function from the module
+        return await dataModule.loadData();
+    } catch (error) {
+        console.error('Error loading data:', error);
+        throw error;
+    }
+}
+
+/**
+ * Update viewport class based on window width
+ * This helps with responsive styling
+ */
+function updateViewportClass() {
+    const body = document.body;
+    
+    // Remove all existing viewport classes
+    body.classList.remove('viewport-xs', 'viewport-sm', 'viewport-md', 'viewport-lg', 'viewport-xl');
+    
+    // Get window width
+    const width = window.innerWidth;
+    
+    // Add appropriate class
+    if (width < 576) {
+        body.classList.add('viewport-xs');
+    } else if (width < 768) {
+        body.classList.add('viewport-sm');
+    } else if (width < 992) {
+        body.classList.add('viewport-md');
+    } else if (width < 1200) {
+        body.classList.add('viewport-lg');
+    } else {
+        body.classList.add('viewport-xl');
+    }
+}
+
+/**
+ * Show a toast notification message
+ * @param {string} message - Message to display
+ * @param {string} type - Type of toast (info, success, warning, error)
+ */
+function showToast(message, type = 'info') {
+    // Create toast element if it doesn't exist
+    let toast = document.getElementById('toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        document.body.appendChild(toast);
+    }
+    
+    // Set message and type
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    
+    // Show the toast
+    toast.classList.add('show');
+    
+    // Hide after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+/**
+ * Show an error message in the sidebar
+ * @param {string} message - Error message to display
+ */
+function showSidebarError(message) {
+    const errorElement = document.querySelector('.mindyhub-sidebar-error');
+    
+    if (errorElement) {
+        // If error element exists, update its content
+        const messageElement = errorElement.querySelector('p');
+        if (messageElement) {
+            messageElement.textContent = message;
+        }
+        
+        // Make sure it's visible
+        errorElement.style.display = 'block';
+    } else {
+        // Create error element if it doesn't exist
+        const sidebar = document.querySelector('.mindyhub-sidebar');
+        if (sidebar) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'mindyhub-sidebar-error';
+            errorDiv.innerHTML = `
+                <p>${message}</p>
+                <button class="refresh-button" onclick="refreshSidebar()">Tentar novamente</button>
+            `;
+            
+            // Add to sidebar content if it exists, or to sidebar directly
+            const sidebarContent = sidebar.querySelector('.mindyhub-sidebar-content');
+            if (sidebarContent) {
+                sidebarContent.appendChild(errorDiv);
+            } else {
+                sidebar.appendChild(errorDiv);
+            }
+        }
+    }
+}
+
+// ===== Search Functionality =====
+function initSearch() {
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('search-input');
+    const heroSearchForm = document.getElementById('hero-search-form');
+    const heroSearchInput = document.getElementById('hero-search-input');
+    
+    // Initialize search autocomplete if needed
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            // Simple search functionality
+            const query = e.target.value.trim();
+            if (query.length > 2) {
+                // Show search results as you type
+                console.log('Searching for:', query);
+            }
+        });
+    }
+    
+    // Handle search form submission
+    if (searchForm) {
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const query = searchInput.value.trim();
+            if (query) {
+                performSearch(query);
+            }
+        });
+    }
+    
+    // Handle hero search form submission
+    if (heroSearchForm) {
+        heroSearchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const query = heroSearchInput.value.trim();
+            if (query) {
+                performSearch(query);
+            }
+        });
+    }
+}
+
+/**
+ * Perform search with the given query
+ * @param {string} query - Search query
+ */
+function performSearch(query) {
+    console.log('Performing search for:', query);
+    
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        // Show loading state
+        mainContent.innerHTML = `
+            <div class="search-results">
+                <h2>Search Results for "${query}"</h2>
+                <div class="loading-spinner"></div>
+            </div>
+        `;
+        
+        // Import the searchResources function from data.js
+        import('./modules/data.js').then(dataModule => {
+            dataModule.searchResources(query)
+                .then(results => {
+                    if (results.length === 0) {
+                        mainContent.innerHTML = `
+                            <div class="search-results">
+                                <h2>Search Results for "${query}"</h2>
+                                <p>No results found. Try a different search term.</p>
+                            </div>
+                        `;
+                    } else {
+                        // Create results HTML
+                        let resultsHTML = `
+                            <div class="search-results">
+                                <h2>Search Results for "${query}"</h2>
+                                <p>${results.length} result${results.length !== 1 ? 's' : ''} found</p>
+                                <div class="resources-grid">`;
+                        
+                        results.forEach(resource => {
+                            resultsHTML += createResourceCard(resource);
+                        });
+                        
+                        resultsHTML += `
+                                </div>
+                            </div>
+                        `;
+                        
+                        mainContent.innerHTML = resultsHTML;
+                        
+                        // Initialize resource cards
+                        initResourceCards();
+                    }
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    mainContent.innerHTML = `
+                        <div class="search-results">
+                            <h2>Search Results for "${query}"</h2>
+                            <p>An error occurred while searching. Please try again later.</p>
+                        </div>
+                    `;
+                });
+        }).catch(error => {
+            console.error('Error loading data module:', error);
+            mainContent.innerHTML = `
+                <div class="search-results">
+                    <h2>Search Results for "${query}"</h2>
+                    <p>An error occurred while searching. Please try again later.</p>
+                </div>
+            `;
+        });
+    }
+    
+    // Update URL and history
+    window.history.pushState({ page: 'search', query }, `Search: ${query}`, `?search=${encodeURIComponent(query)}`);
+}
+
+// ===== Tag Functionality =====
+function initTags() {
+    const tagContainer = document.getElementById('suggested-tags');
+    if (tagContainer) {
+        tagContainer.addEventListener('click', (e) => {
+            const tag = e.target.closest('.tag');
+            if (tag) {
+                const tagValue = tag.dataset.tag;
+                if (tagValue) {
+                    // Set the search input value
+                    const heroSearchInput = document.getElementById('hero-search-input');
+                    if (heroSearchInput) {
+                        heroSearchInput.value = tagValue;
+                        performSearch(tagValue);
+                    }
+                }
+            }
+        });
+    }
+}
+
+// ===== Sliders =====
+function initSliders() {
+    const sliderControls = document.querySelectorAll('.slider-control');
+    
+    sliderControls.forEach(control => {
+        control.addEventListener('click', () => {
+            const sliderId = control.dataset.slider;
+            const direction = control.classList.contains('prev') ? -1 : 1;
+            
+            if (sliderId) {
+                const slider = document.querySelector(`.resources-slider[data-slider="${sliderId}"]`);
+                if (slider) {
+                    const sliderTrack = slider.querySelector('.slider-track');
+                    if (sliderTrack) {
+                        // Get current scroll position
+                        const currentScroll = sliderTrack.scrollLeft;
+                        const cardWidth = sliderTrack.querySelector('.resource-item')?.offsetWidth || 300;
+                        const gap = 16; // Gap between cards
+                        
+                        // Calculate new scroll position
+                        const newScroll = currentScroll + (direction * (cardWidth + gap) * 2);
+                        
+                        // Smooth scroll to new position
+                        sliderTrack.scrollTo({
+                            left: newScroll,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            }
+        });
+    });
+}
+
+// ===== Bento Grid =====
+function initBentoGrid() {
+    const bentoItems = document.querySelectorAll('.bento-item');
+    
+    bentoItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const category = item.dataset.category;
+            
+            if (category) {
+                // Add a subtle loading animation
+                item.classList.add('loading');
+                
+                // Add a small delay for the animation to be visible
+                setTimeout(() => {
+                    loadCategoryPage(category);
+                }, 300);
+            }
+        });
+        
+        // Add keyboard accessibility
+        item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const category = item.dataset.category;
+                
+                if (category) {
+                    // Add a subtle loading animation
+                    item.classList.add('loading');
+                    
+                    // Add a small delay for the animation to be visible
+                    setTimeout(() => {
+                        loadCategoryPage(category);
+                    }, 300);
+                }
+            }
+        });
+    });
+}
+
+/**
+ * Load a category page
+ * @param {string} categoryId - Category ID to load
+ */
+function loadCategoryPage(categoryId) {
+    console.log('Loading category page:', categoryId);
+    
+    // Show loading state
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.innerHTML = `
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>Carregando categoria...</p>
+            </div>
+        `;
+    }
+    
+    // Import the data module dynamically
+    import('./modules/data.js')
+        .then(dataModule => {
+            // Find the category in the data store
+            const categories = dataModule.dataStore.categories;
+            const category = categories[categoryId];
+            
+            if (!category) {
+                console.error(`Category not found: ${categoryId}`);
+                if (mainContent) {
+                    mainContent.innerHTML = `
+                        <div class="error-message">
+                            <h2>Categoria não encontrada</h2>
+                            <p>A categoria solicitada não foi encontrada.</p>
+                            <button class="btn-primary" onclick="window.location.href='/'">Voltar para a página inicial</button>
+                        </div>
+                    `;
+                }
+                return;
+            }
+            
+            // Get the category page template
+            const template = document.getElementById('category-page-template');
+            if (!template) {
+                console.error('Category page template not found');
+                return;
+            }
+            
+            // Clone the template
+            const categoryPage = template.content.cloneNode(true);
+            
+            // Update category information
+            const categoryTitle = categoryPage.querySelector('.category-title');
+            const categoryDescription = categoryPage.querySelector('.category-description');
+            const categoryIcon = categoryPage.querySelector('.category-icon');
+            const resourceCount = categoryPage.querySelector('.resource-count');
+            const subcategoryCount = categoryPage.querySelector('.subcategory-count');
+            
+            if (categoryTitle) categoryTitle.textContent = category.name;
+            if (categoryDescription) categoryDescription.textContent = category.description;
+            if (categoryIcon) {
+                categoryIcon.src = category.icon || `assets/icons/icon-${categoryId}.svg`;
+                categoryIcon.alt = category.name;
+            }
+            
+            // Get resources for this category
+            const resources = dataModule.dataStore.getResourcesByCategory(categoryId);
+            if (resourceCount) resourceCount.textContent = `${resources.length} recursos`;
+            
+            // Get subcategories for this category
+            const subcategories = category.subcategories || [];
+            if (subcategoryCount) subcategoryCount.textContent = `${subcategories.length} subcategorias`;
+            
+            // Populate subcategories grid
+            const subcategoriesGrid = categoryPage.querySelector('.subcategories-grid');
+            if (subcategoriesGrid && subcategories.length > 0) {
+                const subcategoryTemplate = document.getElementById('subcategory-template');
+                
+                subcategories.forEach(subcategory => {
+                    if (subcategoryTemplate) {
+                        const subcategoryCard = subcategoryTemplate.content.cloneNode(true);
+                        
+                        const title = subcategoryCard.querySelector('.subcategory-title');
+                        const description = subcategoryCard.querySelector('.subcategory-description');
+                        const icon = subcategoryCard.querySelector('.subcategory-icon');
+                        const count = subcategoryCard.querySelector('.subcategory-count');
+                        const card = subcategoryCard.querySelector('.subcategory-card');
+                        
+                        if (title) title.textContent = subcategory.name;
+                        if (description) description.textContent = subcategory.description;
+                        if (icon) {
+                            icon.src = subcategory.icon || `assets/icons/icon-${subcategory.id}.svg`;
+                            icon.alt = subcategory.name;
+                        }
+                        
+                        // Get resources for this subcategory
+                        const subcategoryResources = dataModule.dataStore.getResourcesBySubcategory(categoryId, subcategory.id);
+                        if (count) count.textContent = `${subcategoryResources.length} recursos`;
+                        
+                        // Add click event to load subcategory
+                        if (card) {
+                            card.addEventListener('click', () => {
+                                loadSubcategoryContent(categoryId, subcategory.id);
+                            });
+                        }
+                        
+                        subcategoriesGrid.appendChild(subcategoryCard);
+                    }
+                });
+            } else if (subcategoriesGrid) {
+                // Hide subcategories section if none exist
+                const subcategoriesSection = categoryPage.querySelector('.subcategories-section');
+                if (subcategoriesSection) {
+                    subcategoriesSection.style.display = 'none';
+                }
+            }
+            
+            // Populate resources grid
+            const resourcesGrid = categoryPage.querySelector('.category-resources-grid');
+            if (resourcesGrid && resources.length > 0) {
+                const resourceTemplate = document.getElementById('resource-template');
+                
+                resources.forEach(resource => {
+                    if (resourceTemplate) {
+                        const resourceCard = resourceTemplate.content.cloneNode(true);
+                        
+                        // Update resource card with data
+                        const title = resourceCard.querySelector('.resource-title');
+                        const description = resourceCard.querySelector('.resource-description');
+                        const thumbnail = resourceCard.querySelector('.thumbnail-img');
+                        const categoryName = resourceCard.querySelector('.resource-category-name');
+                        const categoryIcon = resourceCard.querySelector('.resource-category-icon');
+                        const link = resourceCard.querySelector('.resource-link');
+                        const tags = resourceCard.querySelector('.resource-tags');
+                        const likes = resourceCard.querySelector('.likes-number');
+                        const item = resourceCard.querySelector('.resource-item');
+                        
+                        if (title) title.textContent = resource.name;
+                        if (description) description.textContent = resource.description;
+                        if (thumbnail) {
+                            thumbnail.src = resource.thumbnail || 'assets/images/placeholder.svg';
+                            thumbnail.alt = resource.name;
+                            
+                            // Add error handler for thumbnail
+                            thumbnail.onerror = function() {
+                                this.src = 'assets/images/placeholder.svg';
+                            };
+                        }
+                        if (categoryName) categoryName.textContent = category.name;
+                        if (categoryIcon) {
+                            categoryIcon.src = category.icon || `assets/icons/icon-${categoryId}.svg`;
+                            categoryIcon.alt = category.name;
+                        }
+                        if (link) {
+                            link.href = resource.url;
+                            link.setAttribute('data-id', resource.id);
+                        }
+                        
+                        // Add tags
+                        if (tags && resource.tags && Array.isArray(resource.tags)) {
+                            resource.tags.forEach(tag => {
+                                const tagElement = document.createElement('span');
+                                tagElement.className = 'resource-tag';
+                                tagElement.textContent = tag;
+                                tags.appendChild(tagElement);
+                            });
+                        }
+                        
+                        // Set likes count
+                        if (likes) likes.textContent = resource.likes || 0;
+                        
+                        // Add resource ID as data attribute
+                        if (item) item.setAttribute('data-id', resource.id);
+                        
+                        resourcesGrid.appendChild(resourceCard);
+                    }
+                });
+                
+                // Initialize resource actions
+                handleResourceActions();
+            } else if (resourcesGrid) {
+                // Show empty state
+                const emptyResources = categoryPage.querySelector('.empty-resources');
+                if (emptyResources) {
+                    emptyResources.style.display = 'flex';
+                }
+            }
+            
+            // Clear main content and append category page
+            if (mainContent) {
+                mainContent.innerHTML = '';
+                mainContent.appendChild(categoryPage);
+            }
+            
+            // Add animation classes
+            setTimeout(() => {
+                const fadeElements = mainContent.querySelectorAll('.fade-in');
+                fadeElements.forEach(el => el.classList.add('visible'));
+                
+                const staggerElements = mainContent.querySelectorAll('.stagger-fade-in > *');
+                staggerElements.forEach((el, index) => {
+                    setTimeout(() => {
+                        el.classList.add('visible');
+                    }, 50 * index);
+                });
+            }, 100);
+        })
+        .catch(error => {
+            console.error('Error loading category page:', error);
+            if (mainContent) {
+                mainContent.innerHTML = `
+                    <div class="error-message">
+                        <h2>Erro ao carregar categoria</h2>
+                        <p>Ocorreu um erro ao carregar a categoria. Por favor, tente novamente.</p>
+                        <button class="btn-primary" onclick="window.location.href='/'">Voltar para a página inicial</button>
+                    </div>
+                `;
+            }
+        });
+    
+    // Update URL and history
+    window.history.pushState({ page: 'category', categoryId }, `Category: ${categoryId}`, `?category=${encodeURIComponent(categoryId)}`);
+}
+
+// ===== Modal =====
+function initModal() {
+    const modal = document.getElementById('modal');
+    const closeBtn = modal?.querySelector('.modal-close');
+    const closeBottomBtn = modal?.querySelector('.modal-close-bottom');
+    
+    // Close modal when clicking the close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            closeModal();
+        });
+    }
+    
+    // Close modal when clicking the bottom close button
+    if (closeBottomBtn) {
+        closeBottomBtn.addEventListener('click', () => {
+            closeModal();
+        });
+    }
+    
+    // Close modal when clicking outside the content
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+        
+        // Close modal when pressing Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('active')) {
+                closeModal();
+            }
+        });
+    }
+}
+
+/**
+ * Close the modal
+ */
+function closeModal() {
+    const modal = document.getElementById('modal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.classList.remove('modal-open');
+        
+        // Reset modal content after animation
+        setTimeout(() => {
+            const modalContent = modal.querySelector('.modal-content');
+            if (modalContent) {
+                modalContent.innerHTML = '';
+            }
+        }, 300);
+    }
+}
+
+// ===== History Navigation =====
+function initHistoryNavigation() {
+    // Handle browser back/forward navigation
+    window.addEventListener('popstate', (event) => {
+        if (event.state) {
+            const state = event.state;
+            
+            if (state.page === 'home') {
+                resetToHomePage();
+            } else if (state.page === 'category' && state.categoryId) {
+                loadCategoryPage(state.categoryId);
+            } else if (state.page === 'subcategory' && state.categoryId && state.subcategoryId) {
+                loadSubcategoryContent(state.categoryId, state.subcategoryId);
+            } else if (state.page === 'search' && state.query) {
+                performSearch(state.query);
+            } else if (state.page === 'resource' && state.resourceId) {
+                openResourceModal(state.resourceId);
+            }
+        } else {
+            // Default to home page if no state
+            resetToHomePage();
+        }
+    });
+}
+
+/**
+ * Reset to home page
+ */
+function resetToHomePage() {
+    console.log('Resetting to home page');
+    // Implement home page reset here
+    
+    // For now, just reload the page
+    window.location.href = window.location.pathname;
+}
+
+/**
+ * Load subcategory content
+ * @param {string} categoryId - Category ID
+ * @param {string} subcategoryId - Subcategory ID
+ */
+function loadSubcategoryContent(categoryId, subcategoryId) {
+    console.log('Loading subcategory content:', categoryId, subcategoryId);
+    
+    // Normalize subcategory ID (replace hyphens with spaces for comparison)
+    const normalizedSubcategoryId = subcategoryId.replace(/-/g, ' ');
+    
+    // Show loading state
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.innerHTML = `
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>Carregando subcategoria...</p>
+            </div>
+        `;
+    }
+    
+    // Import the data module dynamically
+    import('./modules/data.js')
+        .then(dataModule => {
+            // Find the category and subcategory in the data store
+            const categories = dataModule.dataStore.categories;
+            const category = categories[categoryId];
+            
+            if (!category) {
+                console.error(`Category not found: ${categoryId}`);
+                if (mainContent) {
+                    mainContent.innerHTML = `
+                        <div class="error-message">
+                            <h2>Categoria não encontrada</h2>
+                            <p>A categoria solicitada não foi encontrada.</p>
+                            <button class="btn-primary" onclick="window.location.href='/'">Voltar para a página inicial</button>
+                        </div>
+                    `;
+                }
+                return;
+            }
+            
+            // Find the subcategory (using normalized ID for comparison)
+            let subcategory = null;
+            if (category.subcategories) {
+                subcategory = category.subcategories.find(sub => {
+                    // Normalize subcategory ID for comparison
+                    const subId = sub.id.replace(/-/g, ' ').toLowerCase();
+                    return subId === normalizedSubcategoryId.toLowerCase();
+                });
+            }
+            
+            if (!subcategory) {
+                console.error(`Subcategory not found: ${subcategoryId}`);
+                if (mainContent) {
+                    mainContent.innerHTML = `
+                        <div class="error-message">
+                            <h2>Subcategoria não encontrada</h2>
+                            <p>A subcategoria solicitada não foi encontrada.</p>
+                            <button class="btn-primary" onclick="window.location.href='/?category=${encodeURIComponent(categoryId)}'">Voltar para a categoria</button>
+                        </div>
+                    `;
+                }
+                return;
+            }
+            
+            // Get the category page template (we'll reuse it for subcategory)
+            const template = document.getElementById('category-page-template');
+            if (!template) {
+                console.error('Category page template not found');
+                return;
+            }
+            
+            // Clone the template
+            const subcategoryPage = template.content.cloneNode(true);
+            
+            // Update subcategory information
+            const categoryTitle = subcategoryPage.querySelector('.category-title');
+            const categoryDescription = subcategoryPage.querySelector('.category-description');
+            const categoryIcon = subcategoryPage.querySelector('.category-icon');
+            const resourceCount = subcategoryPage.querySelector('.resource-count');
+            
+            if (categoryTitle) categoryTitle.textContent = subcategory.name;
+            if (categoryDescription) categoryDescription.textContent = subcategory.description;
+            if (categoryIcon) {
+                // Use a fallback icon path if the specific icon doesn't exist
+                const iconId = subcategory.id.replace(/\s+/g, '-').toLowerCase();
+                categoryIcon.src = subcategory.icon || `assets/icons/icon-${iconId}.svg`;
+                categoryIcon.alt = subcategory.name;
+                
+                // Add error handler for icon
+                categoryIcon.onerror = function() {
+                    this.src = `assets/icons/icon-${categoryId}.svg`;
+                    // If that also fails, use a generic icon
+                    this.onerror = function() {
+                        this.src = 'assets/icons/icon-resource.svg';
+                    };
+                };
+            }
+            
+            // Hide subcategories section
+            const subcategoriesSection = subcategoryPage.querySelector('.subcategories-section');
+            if (subcategoriesSection) {
+                subcategoriesSection.style.display = 'none';
+            }
+            
+            // Add breadcrumb navigation
+            const categoryBanner = subcategoryPage.querySelector('.category-banner-content');
+            if (categoryBanner) {
+                const breadcrumb = document.createElement('div');
+                breadcrumb.className = 'category-breadcrumb';
+                breadcrumb.innerHTML = `
+                    <a href="/" class="breadcrumb-link home-link">Início</a>
+                    <span class="breadcrumb-separator">/</span>
+                    <a href="?category=${encodeURIComponent(categoryId)}" class="breadcrumb-link">${category.name}</a>
+                    <span class="breadcrumb-separator">/</span>
+                    <span class="breadcrumb-current">${subcategory.name}</span>
+                `;
+                categoryBanner.insertBefore(breadcrumb, categoryBanner.firstChild);
+            }
+            
+            // Get resources for this subcategory
+            const resources = dataModule.dataStore.getResourcesBySubcategory(categoryId, subcategory.id);
+            if (resourceCount) resourceCount.textContent = `${resources.length} recursos`;
+            
+            // Update section header
+            const sectionHeader = subcategoryPage.querySelector('.category-resources-section .section-header');
+            if (sectionHeader) {
+                sectionHeader.textContent = `Recursos em ${subcategory.name}`;
+            }
+            
+            // Populate resources grid
+            const resourcesGrid = subcategoryPage.querySelector('.category-resources-grid');
+            if (resourcesGrid && resources.length > 0) {
+                const resourceTemplate = document.getElementById('resource-template');
+                
+                resources.forEach(resource => {
+                    if (resourceTemplate) {
+                        const resourceCard = resourceTemplate.content.cloneNode(true);
+                        
+                        // Update resource card with data
+                        const title = resourceCard.querySelector('.resource-title');
+                        const description = resourceCard.querySelector('.resource-description');
+                        const thumbnail = resourceCard.querySelector('.thumbnail-img');
+                        const categoryName = resourceCard.querySelector('.resource-category-name');
+                        const categoryIcon = resourceCard.querySelector('.resource-category-icon');
+                        const link = resourceCard.querySelector('.resource-link');
+                        const tags = resourceCard.querySelector('.resource-tags');
+                        const likes = resourceCard.querySelector('.likes-number');
+                        const item = resourceCard.querySelector('.resource-item');
+                        
+                        if (title) title.textContent = resource.name;
+                        if (description) description.textContent = resource.description;
+                        if (thumbnail) {
+                            thumbnail.src = resource.thumbnail || 'assets/images/placeholder.svg';
+                            thumbnail.alt = resource.name;
+                            
+                            // Add error handler for thumbnail
+                            thumbnail.onerror = function() {
+                                this.src = 'assets/images/placeholder.svg';
+                            };
+                        }
+                        if (categoryName) categoryName.textContent = subcategory.name;
+                        if (categoryIcon) {
+                            // Use a fallback icon path if the specific icon doesn't exist
+                            const iconId = subcategory.id.replace(/\s+/g, '-').toLowerCase();
+                            categoryIcon.src = subcategory.icon || `assets/icons/icon-${iconId}.svg`;
+                            categoryIcon.alt = subcategory.name;
+                            
+                            // Add error handler for icon
+                            categoryIcon.onerror = function() {
+                                this.src = `assets/icons/icon-${categoryId}.svg`;
+                                // If that also fails, use a generic icon
+                                this.onerror = function() {
+                                    this.src = 'assets/icons/icon-resource.svg';
+                                };
+                            };
+                        }
+                        if (link) {
+                            link.href = resource.url;
+                            link.setAttribute('data-id', resource.id);
+                        }
+                        
+                        // Add tags
+                        if (tags && resource.tags && Array.isArray(resource.tags)) {
+                            resource.tags.forEach(tag => {
+                                const tagElement = document.createElement('span');
+                                tagElement.className = 'resource-tag';
+                                tagElement.textContent = tag;
+                                tags.appendChild(tagElement);
+                            });
+                        }
+                        
+                        // Set likes count
+                        if (likes) likes.textContent = resource.likes || 0;
+                        
+                        // Add resource ID as data attribute
+                        if (item) item.setAttribute('data-id', resource.id);
+                        
+                        resourcesGrid.appendChild(resourceCard);
+                    }
+                });
+                
+                // Initialize resource actions
+                handleResourceActions();
+            } else if (resourcesGrid) {
+                // Show empty state
+                const emptyResources = subcategoryPage.querySelector('.empty-resources');
+                if (emptyResources) {
+                    emptyResources.style.display = 'flex';
+                }
+            }
+            
+            // Clear main content and append subcategory page
+            if (mainContent) {
+                mainContent.innerHTML = '';
+                mainContent.appendChild(subcategoryPage);
+            }
+            
+            // Add animation classes
+            setTimeout(() => {
+                const fadeElements = mainContent.querySelectorAll('.fade-in');
+                fadeElements.forEach(el => el.classList.add('visible'));
+                
+                const staggerElements = mainContent.querySelectorAll('.stagger-fade-in > *');
+                staggerElements.forEach((el, index) => {
+                    setTimeout(() => {
+                        el.classList.add('visible');
+                    }, 50 * index);
+                });
+            }, 100);
+        })
+        .catch(error => {
+            console.error('Error loading subcategory content:', error);
+            if (mainContent) {
+                mainContent.innerHTML = `
+                    <div class="error-message">
+                        <h2>Erro ao carregar subcategoria</h2>
+                        <p>Ocorreu um erro ao carregar a subcategoria. Por favor, tente novamente.</p>
+                        <button class="btn-primary" onclick="window.location.href='/'">Voltar para a página inicial</button>
+                    </div>
+                `;
+            }
+        });
+    
+    // Update URL and history
+    window.history.pushState(
+        { page: 'subcategory', categoryId, subcategoryId },
+        `Subcategory: ${subcategoryId}`,
+        `?category=${encodeURIComponent(categoryId)}&subcategory=${encodeURIComponent(subcategoryId)}`
+    );
+}
+
+/**
+ * Open resource modal
+ * @param {string} resourceId - Resource ID to open
+ */
+function openResourceModal(resourceId) {
+    console.log('Opening resource modal:', resourceId);
+    
+    // Show loading state
+    const modal = document.getElementById('modal');
+    const modalTitle = modal?.querySelector('.modal-title');
+    const modalContent = modal?.querySelector('.modal-content');
+    const modalFooter = modal?.querySelector('.modal-footer');
+    
+    if (modal && modalContent) {
+        // Show loading state
+        modalTitle.textContent = 'Carregando recurso...';
+        modalContent.innerHTML = `
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>Carregando detalhes do recurso...</p>
+            </div>
+        `;
+        modalFooter.style.display = 'none';
+        
+        // Show modal
+        modal.classList.add('active');
+        document.body.classList.add('modal-open');
+        
+        // Import the data module dynamically
+        import('./modules/data.js')
+            .then(dataModule => {
+                // Find the resource
+                dataModule.findResourceById(resourceId)
+                    .then(resource => {
+                        if (!resource) {
+                            console.error(`Resource not found: ${resourceId}`);
+                            modalTitle.textContent = 'Recurso não encontrado';
+                            modalContent.innerHTML = `
+                                <div class="error-message">
+                                    <p>O recurso solicitado não foi encontrado.</p>
+                                </div>
+                            `;
+                            return;
+                        }
+                        
+                        // Track resource view
+                        trackResourceView(resource);
+                        
+                        // Update modal title
+                        modalTitle.textContent = resource.name;
+                        
+                        // Create resource modal content
+                        modalContent.innerHTML = `
+                            <div class="resource-modal">
+                                <div class="resource-modal-header">
+                                    <div class="resource-modal-thumbnail">
+                                        <img src="${resource.thumbnail || 'assets/images/placeholder.svg'}" alt="${resource.name}" class="modal-thumbnail-img">
+                                    </div>
+                                    <div class="resource-modal-info">
+                                        <div class="resource-modal-category">
+                                            <img src="assets/icons/icon-${resource.category}.svg" alt="${resource.category}" class="modal-category-icon">
+                                            <span class="modal-category-name">${resource.category}</span>
+                                        </div>
+                                        <h2 class="resource-modal-title">${resource.name}</h2>
+                                        <p class="resource-modal-description">${resource.description}</p>
+                                        <div class="resource-modal-tags">
+                                            ${resource.tags && Array.isArray(resource.tags) ? 
+                                                resource.tags.map(tag => `<span class="resource-tag">${tag}</span>`).join('') : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="resource-modal-actions">
+                                    <a href="${resource.url}" target="_blank" rel="noopener noreferrer" class="resource-modal-link btn-primary">
+                                        <img src="assets/icons/icon-external-link.svg" alt="Acessar" class="btn-icon">
+                                        Acessar recurso
+                                    </a>
+                                    <button class="resource-modal-preview btn-secondary" data-url="${resource.url}">
+                                        <img src="assets/icons/icon-eye.svg" alt="Visualizar" class="btn-icon">
+                                        Visualizar
+                                    </button>
+                                    <button class="resource-modal-save btn-secondary" data-id="${resource.id}">
+                                        <img src="assets/icons/icon-heart.svg" alt="Salvar" class="btn-icon save-icon">
+                                        Salvar
+                                    </button>
+                                    <button class="resource-modal-share btn-secondary">
+                                        <img src="assets/icons/icon-share.svg" alt="Compartilhar" class="btn-icon">
+                                        Compartilhar
+                                    </button>
+                                </div>
+                                
+                                ${resource.details ? `
+                                <div class="resource-modal-details">
+                                    <h3 class="details-title">Detalhes</h3>
+                                    <div class="details-content">
+                                        ${resource.details}
+                                    </div>
+                                </div>
+                                ` : ''}
+                                
+                                <div class="resource-modal-metadata">
+                                    <div class="metadata-item">
+                                        <span class="metadata-label">Adicionado em:</span>
+                                        <span class="metadata-value">${new Date(resource.dateAdded || Date.now()).toLocaleDateString('pt-BR')}</span>
+                                    </div>
+                                    <div class="metadata-item">
+                                        <span class="metadata-label">Tipo:</span>
+                                        <span class="metadata-value">${resource.type || 'Website'}</span>
+                                    </div>
+                                    <div class="metadata-item">
+                                        <span class="metadata-label">Licença:</span>
+                                        <span class="metadata-value">${resource.license || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Show footer
+                        modalFooter.style.display = 'flex';
+                        
+                        // Set up preview button
+                        const previewButton = modalContent.querySelector('.resource-modal-preview');
+                        if (previewButton) {
+                            previewButton.addEventListener('click', () => {
+                                showResourcePreview(resource.url);
+                            });
+                        }
+                        
+                        // Set up save button
+                        const saveButton = modalContent.querySelector('.resource-modal-save');
+                        if (saveButton) {
+                            // Check if resource is already saved
+                            const savedResources = JSON.parse(localStorage.getItem('savedResources') || '[]');
+                            const isSaved = savedResources.includes(resource.id);
+                            
+                            // Update button state
+                            if (isSaved) {
+                                saveButton.classList.add('saved');
+                                saveButton.querySelector('.save-icon').classList.add('saved');
+                            }
+                            
+                            // Add click event
+                            saveButton.addEventListener('click', () => {
+                                toggleSavedResource(resource.id, saveButton);
+                            });
+                        }
+                        
+                        // Set up share button
+                        const shareButton = modalContent.querySelector('.resource-modal-share');
+                        if (shareButton) {
+                            shareButton.addEventListener('click', () => {
+                                // Create share URL
+                                const shareUrl = `${window.location.origin}${window.location.pathname}?resource=${encodeURIComponent(resource.id)}`;
+                                
+                                // Try to use Web Share API if available
+                                if (navigator.share) {
+                                    navigator.share({
+                                        title: resource.name,
+                                        text: resource.description,
+                                        url: shareUrl
+                                    }).catch(error => {
+                                        console.error('Error sharing:', error);
+                                        // Fallback to clipboard
+                                        copyToClipboard(shareUrl);
+                                        showToast('Link copiado para a área de transferência!', 'success');
+                                    });
+                                } else {
+                                    // Fallback to clipboard
+                                    copyToClipboard(shareUrl);
+                                    showToast('Link copiado para a área de transferência!', 'success');
+                                }
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error finding resource:', error);
+                        modalTitle.textContent = 'Erro';
+                        modalContent.innerHTML = `
+                            <div class="error-message">
+                                <p>Ocorreu um erro ao carregar o recurso. Por favor, tente novamente.</p>
+                            </div>
+                        `;
+                    });
+            })
+            .catch(error => {
+                console.error('Error loading data module:', error);
+                modalTitle.textContent = 'Erro';
+                modalContent.innerHTML = `
+                    <div class="error-message">
+                        <p>Ocorreu um erro ao carregar o módulo de dados. Por favor, tente novamente.</p>
+                    </div>
+                `;
+            });
+    }
+    
+    // Update URL and history
+    window.history.pushState(
+        { page: 'resource', resourceId },
+        `Resource: ${resourceId}`,
+        `?resource=${encodeURIComponent(resourceId)}`
+    );
+}
+
+/**
+ * Copy text to clipboard
+ * @param {string} text - Text to copy
+ */
+function copyToClipboard(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+}
+
+/**
+ * Set up home navigation links
+ */
+function setupHomeNavigation() {
+    // Set up home link in breadcrumb
+    const homeLinks = document.querySelectorAll('.home-link, .breadcrumb-link.home-link');
+    homeLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            resetToHomePage();
+        });
+    });
+    
+    // Set up logo as home link
+    const logo = document.querySelector('.logo');
+    if (logo) {
+        logo.addEventListener('click', (e) => {
+            e.preventDefault();
+            resetToHomePage();
+        });
+    }
+}
+
+/**
+ * Handle URL parameters on page load
+ */
+function handleURLParameters() {
+    const url = new URL(window.location.href);
+    const categoryParam = url.searchParams.get('category');
+    const subcategoryParam = url.searchParams.get('subcategory');
+    const resourceParam = url.searchParams.get('resource');
+    const searchParam = url.searchParams.get('search');
+    
+    if (resourceParam) {
+        // Open resource directly
+        openResourceModal(resourceParam);
+    } else if (categoryParam && subcategoryParam) {
+        // Load subcategory page
+        loadSubcategoryContent(categoryParam, subcategoryParam);
+    } else if (categoryParam) {
+        // Load category page
+        loadCategoryPage(categoryParam);
+    } else if (searchParam) {
+        // Perform search
+        performSearch(searchParam);
+    }
+    // Default: home page already loaded
+}
+
+/**
+ * Create HTML for a resource card
+ * @param {Object} resource - Resource object
+ * @returns {string} HTML string for the resource card
+ */
+function createResourceCard(resource) {
+    // Get category and subcategory names
+    let categoryName = resource.category || '';
+    let subcategoryName = resource.subcategory || '';
+    
+    // Format tags
+    let tagsHTML = '';
+    if (resource.tags && Array.isArray(resource.tags)) {
+        resource.tags.forEach(tag => {
+            tagsHTML += `<span class="resource-tag">${tag}</span>`;
+        });
+    }
+    
+    return `
+        <div class="resource-item card-hover-effect" data-id="${resource.id}">
+            <div class="resource-thumbnail">
+                <img src="${resource.thumbnail || 'assets/images/placeholder.svg'}" alt="${resource.name}" class="thumbnail-img">
+                <div class="thumbnail-overlay">
+                    <button class="resource-preview-button" aria-label="Visualizar recurso" data-tooltip="Visualizar">
+                        <img src="assets/icons/icon-eye.svg" alt="Visualizar">
+                    </button>
+                </div>
+            </div>
+            <div class="resource-header">
+                <div class="resource-category">
+                    <img src="assets/icons/icon-${resource.category}.svg" alt="${categoryName}" class="resource-category-icon">
+                    <span class="resource-category-name">${categoryName}</span>
+                </div>
+                <div class="resource-actions-top">
+                    <button class="share-button ripple-effect" aria-label="Compartilhar recurso" data-tooltip="Compartilhar">
+                        <img src="assets/icons/icon-share.svg" alt="Compartilhar" class="share-icon">
+                    </button>
+                    <button class="save-button ripple-effect" aria-label="Salvar recurso" data-tooltip="Salvar para depois">
+                        <img src="assets/icons/icon-heart.svg" alt="Salvar" class="save-icon">
+                    </button>
+                </div>
+            </div>
+            <h3 class="resource-title">${resource.name}</h3>
+            <p class="resource-description">${resource.description}</p>
+            <div class="resource-tags">${tagsHTML}</div>
+            <div class="resource-actions">
+                <a href="${resource.url}" class="resource-link" target="_blank" rel="noopener noreferrer" data-id="${resource.id}">Acessar</a>
+                <div class="like-count">
+                    <img src="assets/icons/icon-heart.svg" alt="Likes" class="heart-icon">
+                    <span class="likes-number">${resource.likes || 0}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Initialize resource cards with event handlers
+ */
+function initResourceCards() {
+    // Add click event to resource cards
+    const resourceItems = document.querySelectorAll('.resource-item');
+    resourceItems.forEach(item => {
+        // Preview button
+        const previewButton = item.querySelector('.resource-preview-button');
+        if (previewButton) {
+            previewButton.addEventListener('click', () => {
+                const resourceLink = item.querySelector('.resource-link');
+                if (resourceLink && resourceLink.href) {
+                    showResourcePreview(resourceLink.href);
+                }
+            });
+        }
+        
+        // Save button
+        const saveButton = item.querySelector('.save-button');
+        if (saveButton) {
+            const resourceId = item.dataset.id;
+            if (resourceId) {
+                // Check if already saved
+                const savedResources = JSON.parse(localStorage.getItem('savedResources') || '[]');
+                if (savedResources.includes(resourceId)) {
+                    saveButton.classList.add('saved');
+                    saveButton.querySelector('.save-icon').classList.add('saved');
+                }
+                
+                // Add click event
+                saveButton.addEventListener('click', () => {
+                    toggleSavedResource(resourceId, saveButton);
+                });
+            }
+        }
+        
+        // Share button
+        const shareButton = item.querySelector('.share-button');
+        if (shareButton) {
+            shareButton.addEventListener('click', () => {
+                const resourceId = item.dataset.id;
+                if (resourceId) {
+                    // Create share URL
+                    const shareUrl = `${window.location.origin}${window.location.pathname}?resource=${encodeURIComponent(resourceId)}`;
+                    
+                    // Try to use Web Share API if available
+                    if (navigator.share) {
+                        navigator.share({
+                            title: item.querySelector('.resource-title')?.textContent || 'Recurso Mindy',
+                            text: item.querySelector('.resource-description')?.textContent || 'Confira este recurso da Mindy',
+                            url: shareUrl
+                        }).catch(error => {
+                            console.error('Error sharing:', error);
+                            // Fallback to clipboard
+                            copyToClipboard(shareUrl);
+                            showToast('Link copiado para a área de transferência!', 'success');
+                        });
+                    } else {
+                        // Fallback to clipboard
+                        copyToClipboard(shareUrl);
+                        showToast('Link copiado para a área de transferência!', 'success');
+                    }
+                }
+            });
+        }
+        
+        // Resource link
+        const resourceLink = item.querySelector('.resource-link');
+        if (resourceLink) {
+            resourceLink.addEventListener('click', () => {
+                const resourceId = item.dataset.id || resourceLink.dataset.id;
+                if (resourceId) {
+                    // Track resource view
+                    import('./modules/data.js')
+                        .then(dataModule => {
+                            dataModule.findResourceById(resourceId)
+                                .then(resource => {
+                                    if (resource) {
+                                        trackResourceView(resource);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error finding resource:', error);
+                                });
+                        })
+                        .catch(error => {
+                            console.error('Error loading data module:', error);
+                        });
+                }
+            });
+        }
+    });
 }

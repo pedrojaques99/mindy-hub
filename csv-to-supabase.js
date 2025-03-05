@@ -2,9 +2,14 @@
 // This script helps upload your database-content.csv to Supabase
 
 // ----- CONFIGURATION -----
-// Load credentials from localStorage or use empty strings as fallback
-const SUPABASE_URL = localStorage.getItem('supabaseUrl') || '';
+// Load credentials from localStorage or use the provided URL
+const SUPABASE_URL = localStorage.getItem('supabaseUrl') || 'https://knsngybgnzpvptwmjllg.supabase.co';
 const SUPABASE_ANON_KEY = localStorage.getItem('supabaseKey') || '';
+
+// Store the URL in localStorage if not already set
+if (!localStorage.getItem('supabaseUrl')) {
+  localStorage.setItem('supabaseUrl', SUPABASE_URL);
+}
 
 // ----- CSV PARSER -----
 function parseCSV(csvText) {

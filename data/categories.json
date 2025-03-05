@@ -1,1 +1,32 @@
- 
+[
+  {
+    "id": "design",
+    "title": "Design",
+    "icon": "icon-design.svg",
+    "description": "Recursos e ferramentas para design gráfico, UI/UX, branding e mais"
+  },
+  {
+    "id": "typography",
+    "title": "Tipografia",
+    "icon": "icon-typography.svg",
+    "description": "Fontes, sistemas tipográficos e recursos para trabalhar com texto"
+  },
+  {
+    "id": "tools",
+    "title": "Ferramentas",
+    "icon": "icon-tools.svg",
+    "description": "Aplicativos, serviços e utilidades para otimizar seu fluxo de trabalho"
+  },
+  {
+    "id": "ai",
+    "title": "Inteligência Artificial",
+    "icon": "icon-ai.svg",
+    "description": "Ferramentas e recursos de IA para melhorar seu processo criativo"
+  },
+  {
+    "id": "3d",
+    "title": "Modelagem 3D",
+    "icon": "icon-3d.svg",
+    "description": "Recursos para modelagem, texturização e animação 3D"
+  }
+] 

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="styles/modal-improvements.css">
     <link rel="stylesheet" href="styles/fixes.css">
     <link rel="stylesheet" href="styles/bento-redesign.css">
+    <link rel="stylesheet" href="styles/sidebar-fix.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -16,8 +17,10 @@
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Our Scripts -->
-    <script src="scripts/main.js" defer></script>
+    <script src="scripts/main.js" type="module" defer></script>
     <script src="csv-to-supabase.js" defer></script>
+    <!-- Sidebar Fix Script -->
+    <script src="scripts/sidebar-fix.js" defer></script>
 </head>
 <body>
     <div class="app-container">
@@ -495,12 +498,12 @@
         <div class="admin-panel-content">
             <h2>Supabase Admin</h2>
             <div class="admin-actions">
-                <button id="uploadToSupabaseBtn" class="btn">Upload CSV to Supabase</button>
+                <button id="uploadToSupabaseBtn" class="btn">Upload Data to Supabase</button>
                 <button id="syncFromSupabaseBtn" class="btn">Sync from Supabase</button>
                 <div class="status-message" id="adminStatus"></div>
             </div>
             <div class="admin-config">
-                <h3>Configuration</h3>
+                <h3>Supabase Configuration</h3>
                 <div class="form-group">
                     <label for="supabaseUrl">Supabase URL:</label>
                     <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co">
@@ -510,6 +513,7 @@
                     <input type="text" id="supabaseKey" placeholder="your-anon-key">
                 </div>
                 <button id="saveConfigBtn" class="btn">Save Configuration</button>
+                <p class="admin-note">Note: The application now exclusively uses Supabase for data storage.</p>
             </div>
         </div>
     </div>

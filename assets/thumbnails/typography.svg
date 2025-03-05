@@ -1,0 +1,8 @@
+<svg width="400" height="225" viewBox="0 0 400 225" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="225" fill="#2A2A2A"/>
+  <rect x="50" y="50" width="300" height="125" rx="8" fill="#FFD858" opacity="0.2"/>
+  <path d="M150 92.5H250" stroke="#FFD858" stroke-width="4" stroke-linecap="round"/>
+  <path d="M150 112.5H230" stroke="#FFD858" stroke-width="4" stroke-linecap="round"/>
+  <path d="M150 132.5H210" stroke="#FFD858" stroke-width="4" stroke-linecap="round"/>
+  <text x="200" y="180" font-family="Arial, sans-serif" font-size="16" fill="#FFD858" text-anchor="middle">Typography Resources</text>
+</svg> 

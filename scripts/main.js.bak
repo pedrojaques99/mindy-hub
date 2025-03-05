@@ -1,0 +1,3257 @@
+/**
+ * Mindy® - Main JavaScript
+ * Clean, Modern Implementation
+ */
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', function() {
+    // Create toast container
+    const toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    document.body.appendChild(toastContainer);
+    
+    // Load data first
+    loadData().then(() => {
+        // Update viewport class
+        updateViewportClass();
+        window.addEventListener('resize', updateViewportClass);
+        
+        // Initialize components
+        initSidebar();
+        initSearch();
+        initTags();
+        initSliders();
+        initBentoGrid();
+        initModal();
+        initHistoryNavigation(); // Add keyboard navigation
+        initSaveResourceFeature();
+        initMobileNavigation();
+        initAdminPanel(); // Initialize admin panel keyboard shortcut
+        
+        // Set up navigation
+        setupHomeNavigation();
+        
+        // Initialize recently viewed resources
+        initRecentlyViewed();
+        
+        // Show page loader
+        document.querySelector('.loading-indicator')?.classList.remove('active');
+    });
+    
+    // ... existing code ...
+    
+    // Initialize sidebar toggle
+    initSidebarToggle();
+    
+    // Initialize resource actions
+    handleResourceActions();
+    
+    // Initialize liked cards section
+    initLikedCardsSection();
+});
+
+// ===== Navigation & Sidebar =====
+function initSidebar() {
+    loadCategories()
+        .then(() => {
+            // Mark active category based on URL
+            const url = new URL(window.location.href);
+            const categoryParam = url.searchParams.get('category');
+            if (categoryParam) {
+                const categoryItem = document.querySelector(`.sidebar-nav .subcategory[data-id="${categoryParam}"]`);
+                if (categoryItem) {
+                    const categoryGroup = categoryItem.closest('.category-group');
+                    if (categoryGroup) {
+                        categoryGroup.classList.add('active');
+                    }
+                    categoryItem.classList.add('active');
+                }
+            }
+        });
+    
+    // Add toggle for sidebar on smaller screens
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarOverlay = document.createElement('div');
+    sidebarOverlay.className = 'sidebar-overlay';
+    document.body.appendChild(sidebarOverlay);
+    
+    if (menuToggle && sidebar) {
+        menuToggle.addEventListener('click', () => {
+            menuToggle.classList.toggle('active');
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+            document.body.classList.toggle('sidebar-open');
+        });
+        
+        sidebarOverlay.addEventListener('click', () => {
+            menuToggle.classList.remove('active');
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+            document.body.classList.remove('sidebar-open');
+        });
+    }
+    
+    // Handle category clicks
+    document.addEventListener('click', (e) => {
+        const categoryHeader = e.target.closest('.category-header');
+        if (categoryHeader) {
+            const categoryGroup = categoryHeader.parentElement;
+            categoryGroup.classList.toggle('active');
+            
+            // If category is clicked, load that category page
+            if (categoryGroup && categoryGroup.dataset.category) {
+                const categoryId = categoryGroup.dataset.category;
+                loadCategoryPage(categoryId);
+            }
+        }
+        
+        const subcategory = e.target.closest('.subcategory');
+        if (subcategory) {
+            // Don't process if this is handled by the direct event listener
+            if (e.target === subcategory) {
+                return;
+            }
+            
+            document.querySelectorAll('.subcategory').forEach(item => {
+                item.classList.remove('active');
+            });
+            subcategory.classList.add('active');
+            
+            // Get both category and subcategory IDs
+            const categoryId = subcategory.dataset.category;
+            const subcategoryId = subcategory.dataset.id;
+            
+            // If we have both categoryId and subcategoryId, load subcategory content
+            if (categoryId && subcategoryId) {
+                loadSubcategoryContent(categoryId, subcategoryId);
+            }
+            // Otherwise fall back to category page
+            else if (categoryId) {
+                loadCategoryPage(categoryId);
+            }
+        }
+    });
+}
+
+// ===== Search Functionality =====
+function initSearch() {
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('search-input');
+    const heroSearchForm = document.getElementById('hero-search-form');
+    const heroSearchInput = document.getElementById('hero-search-input');
+    
+    // Initialize search autocomplete
+    if (searchInput) initSearchAutocomplete(searchInput);
+    if (heroSearchInput) initSearchAutocomplete(heroSearchInput);
+    
+    // Store recent searches
+    if (!localStorage.getItem('recentSearches')) {
+        localStorage.setItem('recentSearches', JSON.stringify([]));
+    }
+    
+    // Handle search form submission
+    if (searchForm) {
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const query = searchInput.value.trim();
+            if (query) {
+                // Save search to recent searches
+                saveRecentSearch(query);
+                
+                // Perform search
+                performSearch(query);
+            }
+        });
+    }
+    
+    // Handle hero search form submission
+    if (heroSearchForm) {
+        heroSearchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const query = heroSearchInput.value.trim();
+            if (query) {
+                // Save search to recent searches
+                saveRecentSearch(query);
+                
+                // Perform search
+                performSearch(query);
+            }
+        });
+    }
+}
+
+function initSearchAutocomplete(inputElement) {
+    // Create autocomplete container
+    const autocompleteContainer = document.createElement('div');
+    autocompleteContainer.className = 'search-autocomplete';
+    autocompleteContainer.style.display = 'none';
+    
+    // Insert after input
+    inputElement.parentNode.appendChild(autocompleteContainer);
+    
+    // Handle input events
+    inputElement.addEventListener('input', () => {
+        const query = inputElement.value.trim();
+        
+        if (query.length < 2) {
+            autocompleteContainer.style.display = 'none';
+            return;
+        }
+        
+        // Show loading state
+        autocompleteContainer.style.display = 'block';
+        autocompleteContainer.innerHTML = '<div class="autocomplete-loading">Buscando...</div>';
+        
+        // Get suggestions based on input
+        getSearchSuggestions(query)
+            .then(suggestions => {
+                if (suggestions.length === 0) {
+                    autocompleteContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Render suggestions
+                renderSearchSuggestions(suggestions, autocompleteContainer, inputElement);
+            })
+            .catch(error => {
+                console.error('Error getting search suggestions:', error);
+                autocompleteContainer.style.display = 'none';
+            });
+    });
+    
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!inputElement.contains(e.target) && !autocompleteContainer.contains(e.target)) {
+            autocompleteContainer.style.display = 'none';
+        }
+    });
+    
+    // Handle keyboard navigation in suggestions
+    inputElement.addEventListener('keydown', (e) => {
+        // Only process if suggestions are visible
+        if (autocompleteContainer.style.display !== 'block') return;
+        
+        const suggestions = autocompleteContainer.querySelectorAll('.autocomplete-suggestion');
+        if (suggestions.length === 0) return;
+        
+        // Find currently focused suggestion
+        const focusedIndex = Array.from(suggestions).findIndex(
+            suggestion => suggestion.classList.contains('focused')
+        );
+        
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                // Focus next suggestion
+                if (focusedIndex === -1 || focusedIndex === suggestions.length - 1) {
+                    // Focus first if none focused or at end
+                    suggestions[0].classList.add('focused');
+                    if (focusedIndex !== -1) {
+                        suggestions[focusedIndex].classList.remove('focused');
+                    }
+                } else {
+                    // Focus next
+                    suggestions[focusedIndex].classList.remove('focused');
+                    suggestions[focusedIndex + 1].classList.add('focused');
+                }
+                break;
+                
+            case 'ArrowUp':
+                e.preventDefault();
+                // Focus previous suggestion
+                if (focusedIndex === -1 || focusedIndex === 0) {
+                    // Focus last if none focused or at beginning
+                    suggestions[suggestions.length - 1].classList.add('focused');
+                    if (focusedIndex !== -1) {
+                        suggestions[focusedIndex].classList.remove('focused');
+                    }
+                } else {
+                    // Focus previous
+                    suggestions[focusedIndex].classList.remove('focused');
+                    suggestions[focusedIndex - 1].classList.add('focused');
+                }
+                break;
+                
+            case 'Enter':
+                // Select focused suggestion
+                if (focusedIndex !== -1) {
+                    e.preventDefault();
+                    const suggestion = suggestions[focusedIndex].textContent;
+                    inputElement.value = suggestion;
+                    autocompleteContainer.style.display = 'none';
+                    
+                    // If in a form, submit it
+                    const form = inputElement.closest('form');
+                    if (form) {
+                        form.dispatchEvent(new Event('submit'));
+                    }
+                }
+                break;
+                
+            case 'Escape':
+                // Hide suggestions
+                autocompleteContainer.style.display = 'none';
+                break;
+        }
+    });
+}
+
+function getSearchSuggestions(query) {
+    return new Promise((resolve, reject) => {
+        // Get suggestions from recent searches
+        const recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+        const recentMatches = recentSearches.filter(search => 
+            search.toLowerCase().includes(query.toLowerCase())
+        );
+        
+        // Get tag suggestions
+        const tagMatches = [];
+        const allTags = getAllUniqueTags();
+        allTags.forEach(tag => {
+            if (tag.toLowerCase().includes(query.toLowerCase())) {
+                tagMatches.push(tag);
+            }
+        });
+        
+        // Get resource title suggestions
+        const titleMatches = [];
+        Object.keys(data).forEach(category => {
+            if (category === 'categories') return;
+            
+            const categoryData = data[category];
+            if (categoryData && categoryData.resources) {
+                categoryData.resources.forEach(resource => {
+                    if (resource.title.toLowerCase().includes(query.toLowerCase())) {
+                        titleMatches.push(resource.title);
+                    }
+                });
+            }
+        });
+        
+        // Combine and deduplicate suggestions
+        const allSuggestions = [...recentMatches, ...tagMatches, ...titleMatches]
+            .filter((value, index, self) => self.indexOf(value) === index)
+            .slice(0, 5); // Limit to 5 suggestions
+        
+        resolve(allSuggestions);
+    });
+}
+
+function renderSearchSuggestions(suggestions, container, inputElement) {
+    // Clear container
+    container.innerHTML = '';
+    
+    // Create suggestion elements
+    suggestions.forEach(suggestion => {
+        const suggestionElement = document.createElement('div');
+        suggestionElement.className = 'autocomplete-suggestion';
+        suggestionElement.textContent = suggestion;
+        
+        // Handle click on suggestion
+        suggestionElement.addEventListener('click', () => {
+            inputElement.value = suggestion;
+            container.style.display = 'none';
+            
+            // Submit the form
+            const form = inputElement.closest('form');
+            if (form) {
+                form.dispatchEvent(new Event('submit'));
+            }
+        });
+        
+        container.appendChild(suggestionElement);
+    });
+}
+
+function getAllUniqueTags() {
+    const tags = new Set();
+    
+    // Collect tags from all resources
+    Object.keys(data).forEach(category => {
+        if (category === 'categories') return;
+        
+        const categoryData = data[category];
+        if (categoryData && categoryData.resources) {
+            categoryData.resources.forEach(resource => {
+                if (resource.tags && Array.isArray(resource.tags)) {
+                    resource.tags.forEach(tag => tags.add(tag));
+                }
+            });
+        }
+    });
+    
+    return Array.from(tags);
+}
+
+function saveRecentSearch(query) {
+    // Get existing searches
+    let recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+    
+    // Remove duplicate if exists
+    recentSearches = recentSearches.filter(search => search !== query);
+    
+    // Add to beginning
+    recentSearches.unshift(query);
+    
+    // Limit to 10 searches
+    if (recentSearches.length > 10) {
+        recentSearches = recentSearches.slice(0, 10);
+    }
+    
+    // Save back to localStorage
+    localStorage.setItem('recentSearches', JSON.stringify(recentSearches));
+}
+
+function performSearch(query) {
+    // Show loading state
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.innerHTML = '<div class="loading-indicator">Buscando recursos...</div>';
+    }
+    
+    // Update page title
+    updatePageTitle(`Busca: ${query}`);
+    
+    // Update browser history
+    history.pushState(
+        {page: 'search', query: query},
+        `Busca: ${query} | Mindy®`,
+        `?search=${encodeURIComponent(query)}`
+    );
+    
+    // Ensure all category data is loaded
+    const categories = ['design', 'typography', 'tools', 'ai', '3d'];
+    const fetchPromises = [];
+    
+    categories.forEach(category => {
+        if (!data[category]) {
+            const promise = fetch(`data/${category}.json`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(categoryData => {
+                    data[category] = categoryData;
+                })
+                .catch(error => {
+                    console.error(`Error loading ${category} data:`, error);
+                });
+            
+            fetchPromises.push(promise);
+        }
+    });
+    
+    // Once all data is loaded, perform search
+    Promise.all(fetchPromises)
+        .then(() => {
+            const results = searchResources(query);
+            displaySearchResults(query, results);
+        })
+        .catch(error => {
+            console.error('Error during search:', error);
+            if (mainContent) {
+                mainContent.innerHTML = `
+                    <div class="error-message">
+                        <h2>Erro na busca</h2>
+                        <p>Ocorreu um erro ao buscar por "${query}". Por favor, tente novamente mais tarde.</p>
+                        <button class="btn-primary" onclick="resetToHomePage()">Voltar para a página inicial</button>
+                    </div>
+                `;
+            }
+        });
+}
+
+function searchResources(query) {
+    const results = [];
+    const queryLower = query.toLowerCase();
+    
+    // Search in all categories
+    Object.keys(data).forEach(categoryId => {
+        const categoryData = data[categoryId];
+        
+        // Search in main resources
+        if (categoryData.resources) {
+            categoryData.resources.forEach(resource => {
+                if (matchesSearch(resource, queryLower)) {
+                    results.push({
+                        ...resource,
+                        category: categoryId
+                    });
+                }
+            });
+        }
+        
+        // Search in subcategories
+        if (categoryData.subcategories) {
+            categoryData.subcategories.forEach(subcategory => {
+                // Check for both resources and items arrays (different data structures)
+                const resources = subcategory.resources || subcategory.items || [];
+                
+                resources.forEach(resource => {
+                    if (matchesSearch(resource, queryLower)) {
+                        results.push({
+                            ...resource,
+                            category: categoryId,
+                            subcategory: subcategory.id
+                        });
+                    }
+                });
+            });
+        }
+    });
+    
+    return results;
+}
+
+function matchesSearch(resource, query) {
+    // Check if resource matches search query
+    return (
+        resource.title.toLowerCase().includes(query) ||
+        resource.description.toLowerCase().includes(query) ||
+        (resource.tags && resource.tags.some(tag => tag.toLowerCase().includes(query)))
+    );
+}
+
+function displaySearchResults(query, results) {
+    const mainContent = document.querySelector('.main-content');
+    
+    if (mainContent) {
+        // Clear main content
+        mainContent.innerHTML = '';
+        
+        // Create breadcrumb
+        const breadcrumb = createBreadcrumb([
+            { text: 'Início', link: '#', icon: 'assets/icons/icon-home.svg', onClick: resetToHomePage },
+            { text: `Resultados para "${query}"`, link: null }
+        ]);
+        mainContent.appendChild(breadcrumb);
+        
+        // Create search results section
+        const searchResults = document.createElement('section');
+        searchResults.classList.add('search-results');
+        
+        const resultsHeader = document.createElement('h2');
+        resultsHeader.classList.add('section-header');
+        resultsHeader.textContent = `Resultados para "${query}"`;
+        searchResults.appendChild(resultsHeader);
+        
+        if (results.length > 0) {
+            const resultsCount = document.createElement('p');
+            resultsCount.classList.add('results-count');
+            resultsCount.textContent = `${results.length} ${results.length === 1 ? 'resultado encontrado' : 'resultados encontrados'}`;
+            searchResults.appendChild(resultsCount);
+            
+            const resourcesGrid = document.createElement('div');
+            resourcesGrid.classList.add('resource-grid', 'stagger-fade-in');
+            
+            results.forEach(resource => {
+                const resourceItem = createResourceItem(resource);
+                resourcesGrid.appendChild(resourceItem);
+            });
+            
+            searchResults.appendChild(resourcesGrid);
+        } else {
+            const noResults = document.createElement('div');
+            noResults.classList.add('no-results');
+            
+            const noResultsText = document.createElement('p');
+            noResultsText.textContent = `Nenhum resultado encontrado para "${query}". Tente outra busca.`;
+            
+            noResults.appendChild(noResultsText);
+            searchResults.appendChild(noResults);
+        }
+        
+        mainContent.appendChild(searchResults);
+    }
+}
+
+// ===== Tag Functionality =====
+function initTags() {
+    const tagContainer = document.getElementById('suggested-tags');
+    if (tagContainer) {
+        tagContainer.addEventListener('click', (e) => {
+            const tag = e.target.closest('.tag');
+            if (tag) {
+                const tagValue = tag.dataset.tag;
+                if (tagValue) {
+                    // Set the search input value
+                    const heroSearchInput = document.getElementById('hero-search-input');
+                    if (heroSearchInput) {
+                        heroSearchInput.value = tagValue;
+                        performSearch(tagValue);
+                    }
+                }
+            }
+        });
+    }
+}
+
+// ===== Sliders =====
+function initSliders() {
+    const sliderControls = document.querySelectorAll('.slider-control');
+    
+    sliderControls.forEach(control => {
+        control.addEventListener('click', () => {
+            const sliderId = control.dataset.slider;
+            const direction = control.classList.contains('prev') ? -1 : 1;
+            
+            if (sliderId) {
+                const slider = document.querySelector(`.resources-slider[data-slider="${sliderId}"]`);
+                if (slider) {
+                    const track = slider.querySelector('.slider-track');
+                    const items = track.querySelectorAll('.resource-item');
+                    
+                    if (items.length > 0) {
+                        // Calculate how many items to show based on viewport width
+                        const itemWidth = items[0].offsetWidth + parseInt(window.getComputedStyle(items[0]).marginRight);
+                        const visibleWidth = slider.offsetWidth;
+                        const itemsPerPage = Math.floor(visibleWidth / itemWidth);
+                        
+                        // Calculate current scroll position
+                        const currentScroll = track.scrollLeft;
+                        const scrollAmount = itemWidth * itemsPerPage * direction;
+                        
+                        // Smooth scroll to new position
+                        track.scrollTo({
+                            left: currentScroll + scrollAmount,
+                            behavior: 'smooth'
+                        });
+                        
+                        // Update button states
+                        updateSliderControls(sliderId);
+                    }
+                }
+            }
+        });
+    });
+    
+    // Initialize slider controls state
+    document.querySelectorAll('.resources-slider').forEach(slider => {
+        const sliderId = slider.dataset.slider;
+        if (sliderId) {
+            // Add scroll event listener to update controls
+            slider.querySelector('.slider-track').addEventListener('scroll', () => {
+                updateSliderControls(sliderId);
+            });
+            
+            // Initial update
+            updateSliderControls(sliderId);
+        }
+    });
+}
+
+function updateSliderControls(sliderId) {
+    const slider = document.querySelector(`.resources-slider[data-slider="${sliderId}"]`);
+    if (slider) {
+        const track = slider.querySelector('.slider-track');
+        const prevButton = document.querySelector(`.slider-control.prev[data-slider="${sliderId}"]`);
+        const nextButton = document.querySelector(`.slider-control.next[data-slider="${sliderId}"]`);
+        
+        if (track && prevButton && nextButton) {
+            // Check if we can scroll left
+            prevButton.disabled = track.scrollLeft <= 0;
+            
+            // Check if we can scroll right
+            const canScrollRight = track.scrollLeft < (track.scrollWidth - track.clientWidth - 5); // 5px tolerance
+            nextButton.disabled = !canScrollRight;
+        }
+    }
+}
+
+// ===== Bento Grid =====
+function initBentoGrid() {
+    const bentoItems = document.querySelectorAll('.bento-item');
+    
+    bentoItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const category = item.dataset.category;
+            
+            if (category) {
+                // Add a subtle loading animation
+                item.classList.add('loading');
+                
+                // Add a small delay for the animation to be visible
+                setTimeout(() => {
+                    loadCategoryPage(category);
+                }, 300);
+            }
+        });
+        
+        // Add keyboard accessibility
+        item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const category = item.dataset.category;
+                
+                if (category) {
+                    // Add a subtle loading animation
+                    item.classList.add('loading');
+                    
+                    // Add a small delay for the animation to be visible
+                    setTimeout(() => {
+                        loadCategoryPage(category);
+                    }, 300);
+                }
+            }
+        });
+    });
+}
+
+// ===== Modal =====
+function initModal() {
+    const modal = document.getElementById('modal');
+    const closeBtn = modal?.querySelector('.modal-close');
+    const closeBottomBtn = modal?.querySelector('.modal-close-bottom');
+    
+    // Close modal when clicking the close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            closeModal();
+        });
+    }
+    
+    // Close modal when clicking the bottom close button
+    if (closeBottomBtn) {
+        closeBottomBtn.addEventListener('click', () => {
+            closeModal();
+        });
+    }
+    
+    // Close modal when clicking outside
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    }
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal?.classList.contains('active')) {
+            closeModal();
+        }
+    });
+}
+
+function openModal(title, content) {
+    const modal = document.getElementById('modal');
+    const modalTitle = modal?.querySelector('.modal-title');
+    const modalContent = modal?.querySelector('.modal-content');
+    const modalFooter = modal?.querySelector('.modal-footer');
+    
+    if (modal && modalTitle && modalContent) {
+        // Set title
+        modalTitle.textContent = title;
+        
+        // Clear and set content
+        modalContent.innerHTML = '';
+        
+        if (typeof content === 'string') {
+            modalContent.innerHTML = content;
+        } else {
+            modalContent.appendChild(content);
+        }
+        
+        // Show/hide footer based on whether we need action buttons
+        if (modalFooter) {
+            const hasActionButtons = modalFooter.querySelector('.modal-action-button') !== null;
+            modalFooter.style.display = hasActionButtons ? 'flex' : 'none';
+        }
+        
+        // Add active class to show modal with animation
+        modal.classList.add('active');
+        
+        // Prevent body scrolling when modal is open
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeModal() {
+    const modal = document.getElementById('modal');
+    
+    if (modal) {
+        // Simple close without animations to avoid bugs
+        modal.classList.remove('active');
+        
+        // Clear modal content immediately
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+            modalContent.innerHTML = '';
+        }
+        
+        // Restore body scrolling
+        document.body.style.overflow = '';
+        
+        // Update URL if needed
+        if (window.location.search.includes('resource=')) {
+            // Remove resource parameter from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.delete('resource');
+            
+            const newUrl = urlParams.toString() 
+                ? `?${urlParams.toString()}`
+                : window.location.pathname;
+                
+            history.replaceState(null, document.title, newUrl);
+        }
+    }
+}
+
+function showResourceModal(resource) {
+    // Instead of showing a modal, directly open the resource URL
+    if (resource && resource.url) {
+        window.open(resource.url, '_blank', 'noopener,noreferrer');
+        trackResourceView(resource);
+        return;
+    }
+    
+    // Show error toast if URL is missing
+    showToast('Não foi possível abrir o recurso. URL inválida.', 'error');
+}
+
+function shareResource(resource) {
+    // Toggle share options visibility
+    const modal = document.getElementById('modal');
+    const shareOptions = modal?.querySelector('.share-options');
+    
+    if (shareOptions) {
+        const isVisible = shareOptions.style.display === 'block';
+        shareOptions.style.display = isVisible ? 'none' : 'block';
+        
+        // Scroll to share options if showing
+        if (!isVisible) {
+            setTimeout(() => {
+                shareOptions.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+    }
+}
+
+function shareResourceVia(resource, platform) {
+    // Create share URL
+    const resourceUrl = new URL(window.location.href);
+    resourceUrl.searchParams.set('resource', resource.id);
+    const shareUrl = resourceUrl.toString();
+    
+    // Share text
+    const shareText = `Confira este recurso: ${resource.title} | Mindy®`;
+    
+    // Handle different platforms
+    switch (platform) {
+        case 'copy':
+            // Copy to clipboard
+            navigator.clipboard.writeText(shareUrl)
+                .then(() => {
+                    showToast('Link copiado para a área de transferência!');
+                })
+                .catch(err => {
+                    console.error('Erro ao copiar link:', err);
+                    showToast('Não foi possível copiar o link. Tente novamente.');
+                });
+            break;
+            
+        case 'whatsapp':
+            window.open(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`, '_blank');
+            break;
+            
+        case 'telegram':
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
+            break;
+            
+        case 'twitter':
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+            break;
+    }
+    
+    // Hide share options after sharing
+    const modal = document.getElementById('modal');
+    const shareOptions = modal?.querySelector('.share-options');
+    if (shareOptions) {
+        shareOptions.style.display = 'none';
+    }
+}
+
+// === Toast Notification Function ===
+function showToast(message, type = 'info') {
+    // Create toast element if it doesn't exist
+    let toast = document.getElementById('toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        document.body.appendChild(toast);
+    }
+    
+    // Set type class
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    
+    // Show the toast
+    toast.classList.add('show');
+    
+    // Hide after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+// ===== Data Loading =====
+const data = {};
+
+// Fallback data for when JSON fetches fail
+const fallbackData = {
+    categories: [
+        {
+            id: 'design',
+            name: 'Design',
+            subcategories: [
+                { id: 'ui-ux', name: 'UI/UX' },
+                { id: 'branding', name: 'Branding' },
+                { id: 'illustration', name: 'Ilustração' },
+                { id: 'mockups', name: 'Mockups' }
+            ]
+        },
+        {
+            id: 'typography',
+            name: 'Tipografia',
+            subcategories: [
+                { id: 'fonts', name: 'Fontes' },
+                { id: 'pairing', name: 'Combinações' },
+                { id: 'resources', name: 'Recursos' }
+            ]
+        },
+        {
+            id: 'tools',
+            name: 'Ferramentas',
+            subcategories: [
+                { id: 'productivity', name: 'Produtividade' },
+                { id: 'design-tools', name: 'Design' },
+                { id: 'development', name: 'Desenvolvimento' }
+            ]
+        },
+        {
+            id: 'ai',
+            name: 'IA',
+            subcategories: [
+                { id: 'generative', name: 'Generativa' },
+                { id: 'tools', name: 'Ferramentas' },
+                { id: 'resources', name: 'Recursos' }
+            ]
+        },
+        {
+            id: '3d',
+            name: '3D',
+            subcategories: [
+                { id: 'models', name: 'Modelos' },
+                { id: 'textures', name: 'Texturas' },
+                { id: 'tools', name: 'Ferramentas' }
+            ]
+        }
+    ]
+};
+
+function loadData() {
+    // Create a custom event for when data is loaded
+    const dataLoadedEvent = new CustomEvent('dataLoaded');
+    
+    // Load categories for the sidebar
+    loadCategories()
+        .then(() => {
+            // Load popular resources
+            return loadPopularResources();
+        })
+        .then(() => {
+            // Load recent resources
+            return loadRecentResources();
+        })
+        .then(() => {
+            // Check URL parameters after data is loaded
+            handleURLParameters();
+            
+            // Dispatch the data loaded event
+            window.dispatchEvent(dataLoadedEvent);
+        })
+        .catch(error => {
+            console.error('Error loading data:', error);
+        });
+}
+
+function setupHomeNavigation() {
+    // Set up home link in breadcrumb
+    const homeLinks = document.querySelectorAll('.home-link, .breadcrumb-link.home-link');
+    homeLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            resetToHomePage();
+        });
+    });
+    
+    // Set up logo as home link
+    const logo = document.querySelector('.logo');
+    if (logo) {
+        logo.addEventListener('click', (e) => {
+            e.preventDefault();
+            resetToHomePage();
+        });
+    }
+}
+
+function loadCategories() {
+    return new Promise((resolve, reject) => {
+        fetch('data/categories.json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(categoriesData => {
+                // Store categories data
+                data.categories = categoriesData;
+                
+                // Update sidebar with categories
+                updateSidebarCategories(categoriesData);
+                
+                resolve(categoriesData);
+            })
+            .catch(error => {
+                console.error('Error loading categories:', error);
+                
+                // Use fallback data
+                console.log('Using fallback category data');
+                
+                // Store fallback categories data
+                data.categories = fallbackData.categories;
+                
+                // Update sidebar with fallback categories
+                updateSidebarCategories(fallbackData.categories);
+                
+                resolve(fallbackData.categories);
+            });
+    });
+}
+
+function updateSidebarCategories(categoriesData) {
+    const sidebarNav = document.getElementById('sidebar-nav');
+    if (!sidebarNav) return;
+    
+    // Clear existing categories
+    sidebarNav.innerHTML = '';
+    
+    // Add each category to the sidebar
+    categoriesData.forEach(category => {
+        const categoryGroup = document.createElement('div');
+        categoryGroup.className = 'category-group';
+        categoryGroup.dataset.category = category.id;
+        
+        // Create category header
+        const categoryHeader = document.createElement('div');
+        categoryHeader.className = 'category-header';
+        categoryHeader.innerHTML = `
+            <img src="assets/icons/icon-${category.id}.svg" alt="${category.name}" class="category-icon">
+            <span>${category.name}</span>
+        `;
+        
+        // Create subcategory list
+        const subcategoryList = document.createElement('div');
+        subcategoryList.className = 'subcategory-list';
+        
+        // Add subcategories immediately if available
+        if (category.subcategories && category.subcategories.length > 0) {
+            category.subcategories.forEach(subcategory => {
+                const subcategoryItem = document.createElement('div');
+                subcategoryItem.className = 'subcategory';
+                subcategoryItem.dataset.id = subcategory.id;
+                subcategoryItem.dataset.category = category.id;
+                subcategoryItem.textContent = subcategory.name;
+                
+                // Add click event to subcategory
+                subcategoryItem.addEventListener('click', () => {
+                    // Remove active class from all subcategories
+                    document.querySelectorAll('.subcategory').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    
+                    // Add active class to this subcategory
+                    subcategoryItem.classList.add('active');
+                    
+                    // Load subcategory content
+                    loadSubcategoryContent(category.id, subcategory.id);
+                });
+                
+                subcategoryList.appendChild(subcategoryItem);
+            });
+        }
+        
+        // Add click event to toggle subcategories
+        categoryHeader.addEventListener('click', () => {
+            // Toggle active class
+            categoryGroup.classList.toggle('active');
+            
+            // Load category page
+            loadCategoryPage(category.id);
+        });
+        
+        // Add components to the category group
+        categoryGroup.appendChild(categoryHeader);
+        categoryGroup.appendChild(subcategoryList);
+        
+        // Add to sidebar
+        sidebarNav.appendChild(categoryGroup);
+    });
+}
+
+function loadPopularResources() {
+    return new Promise((resolve, reject) => {
+        try {
+            const popularSlider = document.getElementById('popular-resources');
+            if (!popularSlider) {
+                resolve([]);
+                return;
+            }
+            
+            const sliderTrack = popularSlider.querySelector('.slider-track');
+            if (!sliderTrack) {
+                resolve([]);
+                return;
+            }
+            
+            // Show loading state
+            sliderTrack.innerHTML = '<div class="loading-indicator active"><div class="spinner"></div></div>';
+            
+            // Load popular resources from each category
+            const categories = ['design', 'typography', 'tools', 'ai', '3d'];
+            let popularResources = [];
+            let loadedCategories = 0;
+            let categoryPromises = [];
+            
+            categories.forEach(category => {
+                const promise = fetch(`data/${category}.json`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(categoryData => {
+                        // Store data for future use
+                        data[category] = categoryData;
+                        
+                        // Get popular resources
+                        if (categoryData.resources) {
+                            const popular = categoryData.resources
+                                .filter(resource => resource.popular)
+                                .map(resource => ({...resource, category}));
+                            
+                            popularResources = [...popularResources, ...popular];
+                        }
+                        
+                        // Track loaded categories
+                        loadedCategories++;
+                    });
+                
+                categoryPromises.push(promise);
+            });
+            
+            // Wait for all categories to load
+            Promise.all(categoryPromises)
+                .then(() => {
+                    if (popularResources.length > 0) {
+                        updatePopularSlider(popularResources);
+                    } else {
+                        sliderTrack.innerHTML = '<div class="no-results">Nenhum recurso popular disponível.</div>';
+                    }
+                    resolve(popularResources);
+                })
+                .catch(error => {
+                    console.error('Error loading popular resources:', error);
+                    sliderTrack.innerHTML = '<div class="error-message"><h2>Ops!</h2><p>Não foi possível carregar os recursos populares.</p></div>';
+                    reject(error);
+                });
+        } catch (error) {
+            console.error('Error in loadPopularResources:', error);
+            reject(error);
+        }
+    });
+}
+
+function updatePopularSlider(resources) {
+    const popularSlider = document.querySelector('#popular-resources .slider-track');
+    
+    if (popularSlider) {
+        // Clear slider
+        popularSlider.innerHTML = '';
+        
+        // Add resources to slider
+        resources.forEach(resource => {
+            const resourceItem = createResourceItem(resource);
+            popularSlider.appendChild(resourceItem);
+        });
+    }
+}
+
+function loadRecentResources() {
+    return new Promise((resolve, reject) => {
+        try {
+            const recentSlider = document.getElementById('recent-resources');
+            if (!recentSlider) {
+                resolve([]);
+                return;
+            }
+            
+            const sliderTrack = recentSlider.querySelector('.slider-track');
+            if (!sliderTrack) {
+                resolve([]);
+                return;
+            }
+            
+            // Show loading state
+            sliderTrack.innerHTML = '<div class="loading-indicator active"><div class="spinner"></div></div>';
+            
+            // Load resources from each category
+            const categories = ['design', 'typography', 'tools', 'ai', '3d'];
+            let recentResources = [];
+            let loadedCategories = 0;
+            let categoryPromises = [];
+            
+            categories.forEach(category => {
+                // Skip if already loaded from popular resources
+                if (data[category]) {
+                    loadedCategories++;
+                    // Get recent resources
+                    if (data[category].resources) {
+                        const recent = data[category].resources
+                            .filter(resource => resource.recent)
+                            .map(resource => ({...resource, category}));
+                        
+                        recentResources = [...recentResources, ...recent];
+                    }
+                    return;
+                }
+                
+                const promise = fetch(`data/${category}.json`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(categoryData => {
+                        // Store data for future use
+                        data[category] = categoryData;
+                        
+                        // Get recent resources
+                        if (categoryData.resources) {
+                            const recent = categoryData.resources
+                                .filter(resource => resource.recent)
+                                .map(resource => ({...resource, category}));
+                            
+                            recentResources = [...recentResources, ...recent];
+                        }
+                        
+                        // Track loaded categories
+                        loadedCategories++;
+                    });
+                
+                categoryPromises.push(promise);
+            });
+            
+            // Wait for all categories to load
+            Promise.all(categoryPromises)
+                .then(() => {
+                    if (recentResources.length > 0) {
+                        updateRecentSlider(recentResources);
+                    } else {
+                        sliderTrack.innerHTML = '<div class="no-results">Nenhum recurso recente disponível.</div>';
+                    }
+                    resolve(recentResources);
+                })
+                .catch(error => {
+                    console.error('Error loading recent resources:', error);
+                    sliderTrack.innerHTML = '<div class="error-message"><h2>Ops!</h2><p>Não foi possível carregar os recursos recentes.</p></div>';
+                    reject(error);
+                });
+        } catch (error) {
+            console.error('Error in loadRecentResources:', error);
+            reject(error);
+        }
+    });
+}
+
+function updateRecentSlider(resources) {
+    const recentSlider = document.querySelector('#recent-resources .slider-track');
+    
+    if (recentSlider) {
+        // Clear slider
+        recentSlider.innerHTML = '';
+        
+        // Add resources to slider
+        resources.forEach(resource => {
+            const resourceItem = createResourceItem(resource);
+            recentSlider.appendChild(resourceItem);
+        });
+    }
+}
+
+// ===== Category Pages =====
+function loadCategoryPage(categoryId) {
+    // Show loading state
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.innerHTML = '<div class="loading-indicator">Carregando categoria...</div>';
+    }
+    
+    if (data[categoryId]) {
+        renderCategoryPage(categoryId, data[categoryId]);
+        
+        // Update page title
+        updatePageTitle(getCategoryName(categoryId));
+        
+        // Update browser history
+        history.pushState(
+            {page: 'category', categoryId: categoryId},
+            `${getCategoryName(categoryId)} | Mindy®`,
+            `?category=${categoryId}`
+        );
+    } else {
+        // Load category data if not already loaded
+        fetch(`data/${categoryId}.json`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(categoryData => {
+                data[categoryId] = categoryData;
+                renderCategoryPage(categoryId, categoryData);
+                
+                // Update page title
+                updatePageTitle(getCategoryName(categoryId));
+                
+                // Update browser history
+                history.pushState(
+                    {page: 'category', categoryId: categoryId},
+                    `${getCategoryName(categoryId)} | Mindy®`,
+                    `?category=${categoryId}`
+                );
+            })
+            .catch(error => {
+                console.error(`Error loading ${categoryId} data:`, error);
+                // Show error message
+                if (mainContent) {
+                    mainContent.innerHTML = `
+                        <div class="error-message">
+                            <h2>Erro ao carregar categoria</h2>
+                            <p>Não foi possível carregar os dados para ${getCategoryName(categoryId)}. Por favor, tente novamente mais tarde.</p>
+                            <button class="btn-primary" onclick="resetToHomePage()">Voltar para a página inicial</button>
+                        </div>
+                    `;
+                }
+            });
+    }
+}
+
+/**
+ * Render the category page with improved layout and interactions
+ */
+function renderCategoryPage(categoryId, categoryData) {
+    const mainContent = document.querySelector('.main-content');
+    
+    if (mainContent) {
+        // Clear main content
+        mainContent.innerHTML = '';
+        
+        // Create category page from template
+        const categoryTemplate = document.getElementById('category-page-template');
+        const categoryPage = categoryTemplate.content.cloneNode(true);
+        
+        // Set category data attributes
+        categoryPage.querySelector('.category-page').dataset.category = categoryId;
+        
+        // Set category icon
+        const categoryIcon = categoryPage.querySelector('.category-icon');
+        categoryIcon.src = `assets/icons/icon-${categoryId}.svg`;
+        categoryIcon.alt = categoryData.name;
+        
+        // Set category title and description
+        categoryPage.querySelector('.category-title').textContent = categoryData.name;
+        categoryPage.querySelector('.category-description').textContent = categoryData.description || '';
+        
+        // Count resources
+        let resourceCount = 0;
+        
+        if (categoryData.subcategories) {
+            categoryPage.querySelector('.subcategory-count').textContent = `${categoryData.subcategories.length} subcategorias`;
+            
+            // Count total resources
+            categoryData.subcategories.forEach(subcategory => {
+                if (subcategory.items) {
+                    resourceCount += subcategory.items.length;
+                }
+            });
+        } else {
+            categoryPage.querySelector('.subcategory-count').textContent = '0 subcategorias';
+        }
+        
+        categoryPage.querySelector('.resource-count').textContent = `${resourceCount} recursos`;
+        
+        // Add subcategories with improved layout and accessibility
+        const subcategoriesGrid = categoryPage.querySelector('.subcategories-grid');
+        
+        if (categoryData.subcategories && categoryData.subcategories.length > 0) {
+            categoryData.subcategories.forEach((subcategory, index) => {
+                const subcategoryTemplate = document.getElementById('subcategory-template');
+                const subcategoryCard = subcategoryTemplate.content.cloneNode(true);
+                
+                const card = subcategoryCard.querySelector('.subcategory-card');
+                subcategoryCard.querySelector('.subcategory-title').textContent = subcategory.title || subcategory.name;
+                subcategoryCard.querySelector('.subcategory-description').textContent = subcategory.description || '';
+                subcategoryCard.querySelector('.subcategory-count').textContent = 
+                    subcategory.items ? `${subcategory.items.length} recursos` : '0 recursos';
+                
+                // Set both data attributes for proper navigation
+                card.dataset.id = subcategory.id;
+                card.dataset.category = categoryId;
+                
+                // Add a subtle animation class with staggered delay
+                card.classList.add('fade-in-scale');
+                card.style.animationDelay = `${0.1 * index}s`;
+                
+                // Improve accessibility
+                card.setAttribute('role', 'button');
+                card.setAttribute('tabindex', '0');
+                card.setAttribute('aria-label', `Subcategoria ${subcategory.title || subcategory.name} com ${subcategory.items ? subcategory.items.length : 0} recursos`);
+                
+                // Set subcategory icon based on parent category
+                const iconElement = subcategoryCard.querySelector('.subcategory-icon');
+                iconElement.src = `assets/icons/icon-${categoryId}.svg`;
+                iconElement.alt = subcategory.title || subcategory.name;
+                
+                // Add click event to navigate to subcategory
+                card.addEventListener('click', () => {
+                    loadSubcategoryContent(categoryId, subcategory.id);
+                });
+                
+                // Add keyboard navigation
+                card.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        loadSubcategoryContent(categoryId, subcategory.id);
+                    }
+                });
+                
+                subcategoriesGrid.appendChild(subcategoryCard);
+            });
+        }
+        
+        // Add featured resources
+        const resourcesGrid = categoryPage.querySelector('.category-resources-grid');
+        
+        // Collect all resources from all subcategories
+        const allResources = [];
+        if (categoryData.subcategories) {
+            categoryData.subcategories.forEach(subcategory => {
+                if (subcategory.items) {
+                    subcategory.items.forEach(item => {
+                        allResources.push({
+                            ...item,
+                            category: categoryId,
+                            subcategory: subcategory.id
+                        });
+                    });
+                }
+            });
+        }
+        
+        // Sort by popularity (likes) and take top 6
+        const featuredResources = allResources
+            .sort((a, b) => (b.likes || 0) - (a.likes || 0))
+            .slice(0, 6);
+        
+        featuredResources.forEach(resource => {
+            const resourceItem = createResourceItem(resource);
+            resourcesGrid.appendChild(resourceItem);
+        });
+        
+        // Add event listeners to filter buttons
+        const filterButtons = categoryPage.querySelectorAll('.resource-filter-button');
+        const emptyResourcesMessage = categoryPage.querySelector('.empty-resources');
+        const resetFiltersButton = categoryPage.querySelector('.reset-filters');
+        
+        if (filterButtons.length > 0) {
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    button.classList.add('active');
+                    
+                    // Get filter value
+                    const filter = button.dataset.filter;
+                    
+                    // Apply filter
+                    filterCategoryResources(categoryId, filter, categoryPage);
+                });
+            });
+        }
+        
+        // Reset filters button
+        if (resetFiltersButton) {
+            resetFiltersButton.addEventListener('click', () => {
+                // Reset to "All" filter
+                filterButtons.forEach(btn => {
+                    if (btn.dataset.filter === 'all') {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+                
+                // Apply "all" filter
+                filterCategoryResources(categoryId, 'all', categoryPage);
+            });
+        }
+        
+        // Add the category page to the main content
+        mainContent.appendChild(categoryPage);
+        
+        // Update page title
+        updatePageTitle(categoryData.name);
+        
+        // Update browser history
+        history.pushState(
+            {page: 'category', categoryId: categoryId},
+            `${categoryData.name} | Mindy®`,
+            `?category=${categoryId}`
+        );
+    }
+}
+
+/**
+ * Filter resources on the category page with improved loading states
+ */
+function filterCategoryResources(categoryId, filter, categoryPage) {
+    const resourcesGrid = categoryPage.querySelector('.category-resources-grid');
+    const emptyResourcesMessage = categoryPage.querySelector('.empty-resources');
+    
+    if (!resourcesGrid) return;
+    
+    // Get all resource items
+    const resourceItems = resourcesGrid.querySelectorAll('.resource-item');
+    let visibleCount = 0;
+    
+    resourceItems.forEach(item => {
+        let shouldShow = false;
+        
+        switch (filter) {
+            case 'all':
+                shouldShow = true;
+                break;
+            case 'popular':
+                // Show items with 5 or more likes
+                const likeCount = parseInt(item.querySelector('.likes-number')?.textContent || '0');
+                shouldShow = likeCount >= 5;
+                break;
+            case 'recent':
+                // Show items added in the last 30 days
+                // This is a placeholder - in a real app, you'd check the date
+                // For demo purposes, we'll show 1/3 of the items randomly
+                shouldShow = Math.random() > 0.66;
+                break;
+            case 'free':
+                // Show items that are free
+                // This is a placeholder - in a real app, you'd check a "free" property
+                // For demo purposes, we'll show 1/2 of the items randomly
+                shouldShow = Math.random() > 0.5;
+                break;
+        }
+        
+        if (shouldShow) {
+            item.style.display = '';
+            visibleCount++;
+            
+            // Add a staggered animation
+            item.style.animationDelay = `${0.05 * visibleCount}s`;
+            item.classList.add('fade-in-scale');
+            
+            // Remove the animation class after it completes to allow re-animation
+            setTimeout(() => {
+                item.classList.remove('fade-in-scale');
+            }, 500 + (0.05 * visibleCount * 1000));
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    // Show/hide empty state message
+    if (emptyResourcesMessage) {
+        if (visibleCount === 0) {
+            emptyResourcesMessage.style.display = 'flex';
+        } else {
+            emptyResourcesMessage.style.display = 'none';
+        }
+    }
+}
+
+// Filter resources in a subcategory
+function filterSubcategoryResources(filter, resourcesGrid, emptyResources) {
+    if (!resourcesGrid) return;
+    
+    // Get all resource items
+    const resourceItems = resourcesGrid.querySelectorAll('.resource-item');
+    let visibleCount = 0;
+    
+    resourceItems.forEach(item => {
+        let shouldShow = false;
+        
+        switch (filter) {
+            case 'all':
+                shouldShow = true;
+                break;
+            case 'popular':
+                // Show items with 5 or more likes
+                const likeCount = parseInt(item.querySelector('.likes-number')?.textContent || '0');
+                shouldShow = likeCount >= 5;
+                break;
+            case 'recent':
+                // Show items added in the last 30 days
+                // This is a placeholder - in a real app, you'd check the date
+                // For demo purposes, we'll show 1/3 of the items randomly
+                shouldShow = Math.random() > 0.66;
+                break;
+            case 'free':
+                // Show items that are free
+                // This is a placeholder - in a real app, you'd check a "free" property
+                // For demo purposes, we'll show 1/2 of the items randomly
+                shouldShow = Math.random() > 0.5;
+                break;
+        }
+        
+        if (shouldShow) {
+            item.style.display = '';
+            visibleCount++;
+            
+            // Add a staggered animation
+            item.style.animationDelay = `${0.05 * visibleCount}s`;
+            item.classList.add('fade-in-scale');
+            
+            // Remove the animation class after it completes to allow re-animation
+            setTimeout(() => {
+                item.classList.remove('fade-in-scale');
+            }, 500 + (0.05 * visibleCount * 1000));
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    // Show/hide empty state message
+    if (emptyResources) {
+        if (visibleCount === 0) {
+            emptyResources.style.display = 'flex';
+        } else {
+            emptyResources.style.display = 'none';
+        }
+    }
+}
+
+function loadSubcategoryContent(categoryId, subcategoryId) {
+    if (data[categoryId]) {
+        const subcategory = data[categoryId].subcategories.find(sub => sub.id === subcategoryId);
+        
+        if (subcategory) {
+            renderSubcategoryContent(categoryId, subcategory);
+            
+            // Update page title
+            const subcategoryTitle = subcategory.title || subcategory.name;
+            updatePageTitle(`${subcategoryTitle} - ${getCategoryName(categoryId)}`);
+            
+            // Update browser history
+            history.pushState(
+                {page: 'subcategory', categoryId: categoryId, subcategoryId: subcategoryId},
+                `${subcategoryTitle} | ${getCategoryName(categoryId)} | Mindy®`,
+                `?category=${categoryId}&subcategory=${subcategoryId}`
+            );
+        }
+    } else {
+        // If data is not loaded yet, fetch it first
+        fetch(`data/${categoryId}.json`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(categoryData => {
+                // Store data
+                data[categoryId] = categoryData;
+                
+                // Find subcategory and render
+                const subcategory = categoryData.subcategories.find(sub => sub.id === subcategoryId);
+                if (subcategory) {
+                    renderSubcategoryContent(categoryId, subcategory);
+                    
+                    // Update page title
+                    const subcategoryTitle = subcategory.title || subcategory.name;
+                    updatePageTitle(`${subcategoryTitle} - ${getCategoryName(categoryId)}`);
+                    
+                    // Update browser history
+                    history.pushState(
+                        {page: 'subcategory', categoryId: categoryId, subcategoryId: subcategoryId},
+                        `${subcategoryTitle} | ${getCategoryName(categoryId)} | Mindy®`,
+                        `?category=${categoryId}&subcategory=${subcategoryId}`
+                    );
+                } else {
+                    console.error(`Subcategory ${subcategoryId} not found in ${categoryId}`);
+                    // Fallback to category page
+                    loadCategoryPage(categoryId);
+                }
+            })
+            .catch(error => {
+                console.error(`Error loading ${categoryId} data:`, error);
+                // Show error message
+                const mainContent = document.querySelector('.main-content');
+                if (mainContent) {
+                    mainContent.innerHTML = `
+                        <div class="error-message">
+                            <h2>Erro ao carregar conteúdo</h2>
+                            <p>Não foi possível carregar os dados para ${getCategoryName(categoryId)}. Por favor, tente novamente mais tarde.</p>
+                            <button class="btn-primary" onclick="resetToHomePage()">Voltar para a página inicial</button>
+                        </div>
+                    `;
+                }
+            });
+    }
+}
+
+function renderSubcategoryContent(categoryId, subcategory) {
+    const mainContent = document.querySelector('.main-content');
+    
+    if (mainContent) {
+        // Clear main content
+        mainContent.innerHTML = '';
+        
+        // Create breadcrumb
+        const breadcrumb = createBreadcrumb([
+            { text: 'Início', link: '#', icon: 'assets/icons/icon-home.svg', onClick: resetToHomePage },
+            { text: data[categoryId].name, link: '#', onClick: () => loadCategoryPage(categoryId) },
+            { text: subcategory.title || subcategory.name, link: null }
+        ]);
+        mainContent.appendChild(breadcrumb);
+        
+        // Create subcategory header
+        const header = document.createElement('div');
+        header.classList.add('category-header');
+        
+        const headerIcon = document.createElement('div');
+        headerIcon.classList.add('category-icon');
+        
+        const icon = document.createElement('img');
+        icon.src = `assets/icons/icon-${categoryId}.svg`;
+        icon.alt = subcategory.title || subcategory.name;
+        headerIcon.appendChild(icon);
+        
+        const headerInfo = document.createElement('div');
+        headerInfo.classList.add('category-info');
+        
+        const title = document.createElement('h1');
+        title.classList.add('category-title');
+        title.textContent = subcategory.title || subcategory.name;
+        
+        const description = document.createElement('p');
+        description.classList.add('category-description');
+        description.textContent = subcategory.description || '';
+        
+        headerInfo.appendChild(title);
+        headerInfo.appendChild(description);
+        
+        header.appendChild(headerIcon);
+        header.appendChild(headerInfo);
+        
+        mainContent.appendChild(header);
+        
+        // Add resources if available
+        // Check for both resources and items arrays (different data structures)
+        const resources = subcategory.resources || subcategory.items || [];
+        
+        if (resources.length > 0) {
+            const resourcesSection = document.createElement('section');
+            resourcesSection.classList.add('resources-section');
+            
+            const resourcesHeader = document.createElement('h2');
+            resourcesHeader.classList.add('section-header');
+            resourcesHeader.textContent = 'Recursos disponíveis';
+            
+            const resourcesDescription = document.createElement('p');
+            resourcesDescription.classList.add('section-description');
+            resourcesDescription.textContent = `Explore os ${resources.length} recursos disponíveis nesta subcategoria`;
+            
+            // Create resource controls
+            const resourceControls = document.createElement('div');
+            resourceControls.classList.add('resource-controls');
+            
+            const resourceFilter = document.createElement('div');
+            resourceFilter.classList.add('resource-filter');
+            
+            // Add filter buttons
+            const filterOptions = [
+                { id: 'all', icon: 'grid', text: 'Todos' },
+                { id: 'popular', icon: 'star', text: 'Populares' },
+                { id: 'recent', icon: 'clock', text: 'Recentes' },
+                { id: 'free', icon: 'tag', text: 'Gratuitos' }
+            ];
+            
+            filterOptions.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.classList.add('resource-filter-button');
+                if (index === 0) button.classList.add('active');
+                button.dataset.filter = option.id;
+                
+                const img = document.createElement('img');
+                img.src = `assets/icons/icon-${option.icon}.svg`;
+                img.alt = option.text;
+                
+                const span = document.createElement('span');
+                span.textContent = option.text;
+                
+                button.appendChild(img);
+                button.appendChild(span);
+                
+                // Add click event
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons
+                    resourceFilter.querySelectorAll('.resource-filter-button').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked button
+                    button.classList.add('active');
+                    
+                    // Apply filter
+                    filterSubcategoryResources(option.id, resourcesGrid, emptyResources);
+                });
+                
+                resourceFilter.appendChild(button);
+            });
+            
+            resourceControls.appendChild(resourceFilter);
+            
+            const resourcesGrid = document.createElement('div');
+            resourcesGrid.classList.add('resource-grid', 'stagger-fade-in');
+            
+            // Create empty state message
+            const emptyResources = document.createElement('div');
+            emptyResources.classList.add('empty-resources');
+            emptyResources.style.display = 'none';
+            
+            const emptyIcon = document.createElement('img');
+            emptyIcon.src = 'assets/icons/icon-resource.svg';
+            emptyIcon.alt = 'Sem recursos';
+            
+            const emptyTitle = document.createElement('h3');
+            emptyTitle.textContent = 'Nenhum recurso encontrado';
+            
+            const emptyText = document.createElement('p');
+            emptyText.textContent = 'Não encontramos recursos que correspondam aos filtros selecionados.';
+            
+            const resetButton = document.createElement('button');
+            resetButton.classList.add('btn-primary', 'reset-filters');
+            resetButton.textContent = 'Limpar filtros';
+            
+            // Add reset button click event
+            resetButton.addEventListener('click', () => {
+                // Reset to "All" filter
+                resourceFilter.querySelectorAll('.resource-filter-button').forEach(btn => {
+                    if (btn.dataset.filter === 'all') {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+                
+                // Apply "all" filter
+                filterSubcategoryResources('all', resourcesGrid, emptyResources);
+            });
+            
+            emptyResources.appendChild(emptyIcon);
+            emptyResources.appendChild(emptyTitle);
+            emptyResources.appendChild(emptyText);
+            emptyResources.appendChild(resetButton);
+            
+            resources.forEach(resource => {
+                const resourceItem = createResourceItem({
+                    ...resource, 
+                    category: categoryId,
+                    subcategory: subcategory.id
+                });
+                resourcesGrid.appendChild(resourceItem);
+            });
+            
+            resourcesSection.appendChild(resourcesHeader);
+            resourcesSection.appendChild(resourcesDescription);
+            resourcesSection.appendChild(resourceControls);
+            resourcesSection.appendChild(resourcesGrid);
+            resourcesSection.appendChild(emptyResources);
+            
+            mainContent.appendChild(resourcesSection);
+        } else {
+            const noResources = document.createElement('div');
+            noResources.classList.add('empty-resources');
+            
+            const emptyIcon = document.createElement('img');
+            emptyIcon.src = 'assets/icons/icon-resource.svg';
+            emptyIcon.alt = 'Sem recursos';
+            
+            const emptyTitle = document.createElement('h3');
+            emptyTitle.textContent = 'Nenhum recurso disponível';
+            
+            const emptyText = document.createElement('p');
+            emptyText.textContent = 'Esta subcategoria ainda não possui recursos disponíveis.';
+            
+            const backButton = document.createElement('button');
+            backButton.classList.add('btn-primary');
+            backButton.textContent = 'Voltar para a categoria';
+            backButton.addEventListener('click', () => {
+                loadCategoryPage(categoryId);
+            });
+            
+            noResources.appendChild(emptyIcon);
+            noResources.appendChild(emptyTitle);
+            noResources.appendChild(emptyText);
+            noResources.appendChild(backButton);
+            
+            mainContent.appendChild(noResources);
+        }
+        
+        // Update page title
+        updatePageTitle(`${subcategory.title || subcategory.name} - ${getCategoryName(categoryId)}`);
+        
+        // Update browser history
+        history.pushState(
+            {page: 'subcategory', categoryId: categoryId, subcategoryId: subcategory.id},
+            `${subcategory.title || subcategory.name} | ${getCategoryName(categoryId)} | Mindy®`,
+            `?category=${categoryId}&subcategory=${subcategory.id}`
+        );
+    }
+}
+
+// ===== Helper Functions =====
+function createResourceItem(resource) {
+    const template = document.getElementById('resource-template');
+    const resourceItem = template.content.cloneNode(true);
+    
+    // Generate resourceId if not already present
+    const resourceId = resource.id || btoa(resource.url).replace(/=/g, '');
+    
+    // Set resource data
+    const resourceElement = resourceItem.querySelector('.resource-item');
+    if (resourceElement) {
+        resourceElement.dataset.id = resourceId;
+        
+        // Set the category data attribute for proper styling
+        resourceElement.dataset.category = resource.category || resource.categoryId || 'design';
+        
+        // Add proper accessibility attributes
+        resourceElement.setAttribute('role', 'button');
+        resourceElement.setAttribute('tabindex', '0');
+        resourceElement.setAttribute('aria-label', `Recurso: ${resource.title}`);
+        
+        // Add keyboard navigation - direct link instead of modal
+        resourceElement.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                // Open resource directly instead of showing modal
+                window.open(resource.url, '_blank', 'noopener,noreferrer');
+                trackResourceView(resource);
+            }
+        });
+    }
+    
+    // Set category icon with proper fallback
+    const categoryIcon = resourceItem.querySelector('.resource-category-icon');
+    categoryIcon.src = `assets/icons/icon-${resource.category || resource.categoryId || 'tools'}.svg`;
+    categoryIcon.alt = resource.category || resource.categoryId || 'tools';
+    categoryIcon.onerror = function() {
+        this.src = 'assets/icons/icon-resource.svg';
+    };
+    
+    // Set category name with proper fallback
+    resourceItem.querySelector('.resource-category-name').textContent = 
+        getCategoryName(resource.category || resource.categoryId || 'tools');
+    
+    // Set title and description
+    resourceItem.querySelector('.resource-title').textContent = resource.title;
+    
+    const description = resourceItem.querySelector('.resource-description');
+    description.textContent = resource.description || 'Sem descrição disponível';
+    
+    // Add tooltip for long descriptions
+    if (resource.description && resource.description.length > 100) {
+        description.setAttribute('title', resource.description);
+    }
+    
+    // Set link with proper attributes
+    const resourceLink = resourceItem.querySelector('.resource-link');
+    resourceLink.href = resource.url;
+    resourceLink.setAttribute('aria-label', `Acessar ${resource.title}`);
+    
+    // Add target="_blank" and rel attributes for security
+    resourceLink.target = "_blank";
+    resourceLink.rel = "noopener noreferrer";
+    
+    // Track resource view
+    resourceLink.addEventListener('click', (e) => {
+        e.stopPropagation();
+        trackResourceView(resource);
+    });
+    
+    // Add tags if available
+    const tagsContainer = resourceItem.querySelector('.resource-tags');
+    if (resource.tags && resource.tags.length > 0) {
+        resource.tags.forEach(tag => {
+            const tagElement = document.createElement('span');
+            tagElement.classList.add('tag');
+            tagElement.textContent = tag;
+            tagsContainer.appendChild(tagElement);
+        });
+    } else {
+        tagsContainer.style.display = 'none';
+    }
+    
+    // Update save functionality with improved accessibility
+    const saveButton = resourceItem.querySelector('.save-button');
+    saveButton.setAttribute('aria-label', 'Salvar recurso');
+    saveButton.setAttribute('title', 'Salvar para acesso rápido');
+    
+    saveButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent opening modal when clicking save button
+        toggleSavedResource(resourceId, saveButton);
+        
+        // Provide feedback
+        const isSaved = saveButton.classList.contains('saved');
+        showToast(isSaved ? 'Recurso salvo com sucesso!' : 'Recurso removido dos salvos');
+    });
+    
+    // Set initial save button state
+    updateSaveButtonState(resourceId, saveButton);
+    
+    // Add share functionality with improved accessibility
+    const shareButton = resourceItem.querySelector('.share-button');
+    shareButton.setAttribute('aria-label', 'Compartilhar recurso');
+    shareButton.setAttribute('title', 'Compartilhar este recurso');
+    
+    shareButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent opening modal when clicking share button
+        
+        // Try to use the Web Share API if available
+        if (navigator.share) {
+            navigator.share({
+                title: resource.title,
+                text: resource.description || 'Confira este recurso!',
+                url: resource.url
+            })
+            .then(() => console.log('Shared successfully'))
+            .catch((error) => {
+                console.log('Error sharing:', error);
+                // Fallback to copy link
+                shareResourceVia(resource, 'copy');
+                showToast('Link copiado para a área de transferência!');
+            });
+        } else {
+            // Fallback to copy link
+            shareResourceVia(resource, 'copy');
+            showToast('Link copiado para a área de transferência!');
+        }
+    });
+    
+    // Change click event to directly open the resource URL instead of modal
+    resourceElement.addEventListener('click', () => {
+        window.open(resource.url, '_blank', 'noopener,noreferrer');
+        trackResourceView(resource);
+    });
+    
+    // Fix preview button functionality
+    const previewButton = resourceItem.querySelector('.resource-preview-button');
+    if (previewButton) {
+        previewButton.setAttribute('aria-label', 'Acessar recurso');
+        previewButton.setAttribute('title', 'Acessar este recurso');
+        
+        previewButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent event bubbling
+            window.open(resource.url, '_blank', 'noopener,noreferrer');
+            trackResourceView(resource);
+        });
+    }
+    
+    return resourceElement;
+}
+
+function createBreadcrumb(items) {
+    const nav = document.createElement('nav');
+    nav.classList.add('breadcrumb-nav');
+    nav.setAttribute('aria-label', 'Navegação');
+    
+    const ol = document.createElement('ol');
+    ol.classList.add('breadcrumb-list');
+    
+    items.forEach(item => {
+        const li = document.createElement('li');
+        li.classList.add('breadcrumb-item');
+        
+        if (item.link) {
+            const a = document.createElement('a');
+            a.classList.add('breadcrumb-link');
+            a.href = item.link;
+            
+            if (item.onClick) {
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    item.onClick();
+                });
+            }
+            
+            if (item.icon) {
+                const img = document.createElement('img');
+                img.src = item.icon;
+                img.alt = '';
+                img.classList.add('breadcrumb-icon');
+                a.appendChild(img);
+            }
+            
+            const span = document.createElement('span');
+            span.textContent = item.text;
+            a.appendChild(span);
+            
+            li.appendChild(a);
+        } else {
+            const span = document.createElement('span');
+            span.classList.add('breadcrumb-current');
+            span.textContent = item.text;
+            li.appendChild(span);
+        }
+        
+        ol.appendChild(li);
+    });
+    
+    nav.appendChild(ol);
+    return nav;
+}
+
+function getCategoryName(categoryId) {
+    const categories = {
+        'design': 'Design',
+        'typography': 'Tipografia',
+        'tools': 'Ferramentas',
+        'ai': 'IA',
+        '3d': '3D'
+    };
+    
+    return categories[categoryId] || categoryId;
+}
+
+// Add CSS class for mobile detection
+function updateViewportClass() {
+    if (window.innerWidth < 992) {
+        document.body.classList.add('is-mobile');
+    } else {
+        document.body.classList.remove('is-mobile');
+    }
+}
+
+// Initial call
+updateViewportClass();
+
+// Update on resize
+window.addEventListener('resize', updateViewportClass);
+
+function resetToHomePage() {
+    // Reset main content to home page
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        // Show loading state
+        mainContent.innerHTML = '<div class="loading-indicator">Carregando página inicial...</div>';
+        
+        // Update page title
+        updatePageTitle(null);
+        
+        // Fetch the original HTML content
+        fetch('index.html')
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const originalContent = doc.querySelector('.main-content').innerHTML;
+                
+                // Apply the original content
+                mainContent.innerHTML = originalContent;
+                
+                // Reinitialize components that depend on the main content
+                initBentoGrid();
+                initTags();
+                
+                // Initialize sliders after a short delay to ensure content is loaded
+                setTimeout(() => {
+                    initSliders();
+                    
+                    // Add fade-in effect to elements
+                    const fadeElements = mainContent.querySelectorAll('.fade-in');
+                    fadeElements.forEach((el, index) => {
+                        setTimeout(() => {
+                            el.classList.add('visible');
+                        }, index * 100);
+                    });
+                    
+                    // Add stagger effect to grid items
+                    const staggerElements = mainContent.querySelectorAll('.stagger-fade-in > *');
+                    staggerElements.forEach((el, index) => {
+                        setTimeout(() => {
+                            el.classList.add('visible');
+                        }, 300 + (index * 100));
+                    });
+                }, 100);
+            })
+            .catch(error => {
+                console.error('Error resetting to home page:', error);
+                mainContent.innerHTML = `
+                    <div class="error-message">
+                        <h2>Erro ao carregar página inicial</h2>
+                        <p>Não foi possível carregar a página inicial. Por favor, tente novamente mais tarde.</p>
+                        <button class="btn-primary" onclick="location.reload()">Recarregar página</button>
+                    </div>
+                `;
+            });
+    }
+    
+    // Deactivate any active subcategories
+    document.querySelectorAll('.subcategory.active').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Close sidebar on mobile
+    const sidebar = document.querySelector('.sidebar');
+    const menuToggle = document.getElementById('menu-toggle');
+    if (window.innerWidth < 992 && sidebar && sidebar.classList.contains('active')) {
+        sidebar.classList.remove('active');
+        if (menuToggle) menuToggle.classList.remove('active');
+        
+        const overlay = document.querySelector('.sidebar-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+            setTimeout(() => overlay.remove(), 300);
+        }
+    }
+    
+    // Update URL to reflect home page
+    history.pushState({page: 'home'}, 'Home', window.location.pathname);
+}
+
+// ===== History Navigation =====
+function initHistoryNavigation() {
+    // Handle browser back/forward navigation
+    window.addEventListener('popstate', (event) => {
+        if (event.state) {
+            const state = event.state;
+            
+            if (state.page === 'home') {
+                resetToHomePage();
+            } else if (state.page === 'category' && state.categoryId) {
+                loadCategoryPage(state.categoryId);
+            } else if (state.page === 'subcategory' && state.categoryId && state.subcategoryId) {
+                loadSubcategoryContent(state.categoryId, state.subcategoryId);
+            } else if (state.page === 'search' && state.query) {
+                performSearch(state.query);
+            } else if (state.page === 'resource' && state.resourceId) {
+                openResourceModal(state.resourceId);
+            }
+        } else {
+            // Default to home if no state
+            resetToHomePage();
+        }
+    });
+    
+    // Check for URL parameters on initial load
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    if (urlParams.has('search')) {
+        // Handle search parameter
+        const query = urlParams.get('search');
+        if (query) {
+            performSearch(query);
+            return;
+        }
+    }
+    
+    if (urlParams.has('resource')) {
+        // Handle direct resource link
+        const resourceId = urlParams.get('resource');
+        if (resourceId) {
+            openResourceModal(resourceId);
+            return;
+        }
+    }
+    
+    if (urlParams.has('category')) {
+        // Handle category parameter
+        const categoryId = urlParams.get('category');
+        
+        if (urlParams.has('subcategory')) {
+            // Handle subcategory parameter
+            const subcategoryId = urlParams.get('subcategory');
+            if (categoryId && subcategoryId) {
+                loadSubcategoryContent(categoryId, subcategoryId);
+                return;
+            }
+        }
+        
+        if (categoryId) {
+            loadCategoryPage(categoryId);
+            return;
+        }
+    }
+    
+    // Set initial history state if no parameters
+    if (!history.state) {
+        history.replaceState({page: 'home'}, 'Home', window.location.pathname);
+    }
+}
+
+// ===== Page Title Management =====
+function updatePageTitle(title) {
+    // Update the page title with the provided title or default to Mindy®
+    document.title = title ? `${title} | Mindy®` : 'Mindy® | Biblioteca Digital';
+}
+
+// Function to open a resource modal directly from URL
+function openResourceModal(resourceId) {
+    // Show loading state
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.innerHTML = '<div class="loading-indicator">Carregando recurso...</div>';
+    }
+    
+    // Find the resource across all categories
+    findResourceById(resourceId)
+        .then(result => {
+            if (result) {
+                const { resource, categoryId, subcategoryId } = result;
+                
+                // First load the appropriate subcategory or category page
+                if (subcategoryId) {
+                    loadSubcategoryContent(categoryId, subcategoryId);
+                } else {
+                    loadCategoryPage(categoryId);
+                }
+                
+                // Open the resource URL directly
+                if (resource.url) {
+                    window.open(resource.url, '_blank', 'noopener,noreferrer');
+                    trackResourceView(resource);
+                    
+                    // Show toast notification
+                    showToast(`Abrindo recurso: ${resource.title}`, 'info');
+                    
+                    // Update page title
+                    updatePageTitle(`${getCategoryName(categoryId)}`);
+                } else {
+                    showToast('Não foi possível abrir o recurso. URL inválida.', 'error');
+                }
+            } else {
+                // Resource not found
+                if (mainContent) {
+                    mainContent.innerHTML = `
+                        <div class="error-message">
+                            <h2>Recurso não encontrado</h2>
+                            <p>O recurso solicitado não foi encontrado. Ele pode ter sido removido ou o link está incorreto.</p>
+                            <button class="btn-primary" onclick="resetToHomePage()">Voltar para a página inicial</button>
+                        </div>
+                    `;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error finding resource:', error);
+            if (mainContent) {
+                mainContent.innerHTML = `
+                    <div class="error-message">
+                        <h2>Erro ao carregar recurso</h2>
+                        <p>Ocorreu um erro ao carregar o recurso solicitado. Por favor, tente novamente mais tarde.</p>
+                        <button class="btn-primary" onclick="resetToHomePage()">Voltar para a página inicial</button>
+                    </div>
+                `;
+            }
+        });
+}
+
+// Function to find a resource by ID across all categories
+function findResourceById(resourceId) {
+    return new Promise((resolve, reject) => {
+        const categories = ['design', 'typography', 'tools', 'ai', '3d'];
+        const fetchPromises = [];
+        
+        // Load any missing category data
+        categories.forEach(categoryId => {
+            if (!data[categoryId]) {
+                const promise = fetch(`data/${categoryId}.json`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(categoryData => {
+                        data[categoryId] = categoryData;
+                    })
+                    .catch(error => {
+                        console.error(`Error loading ${categoryId} data:`, error);
+                    });
+                
+                fetchPromises.push(promise);
+            }
+        });
+        
+        // Once all data is loaded, search for the resource
+        Promise.all(fetchPromises)
+            .then(() => {
+                // Search through all loaded categories
+                for (const categoryId in data) {
+                    const categoryData = data[categoryId];
+                    
+                    // Check resources directly in the category
+                    if (categoryData.resources) {
+                        const resource = categoryData.resources.find(r => r.id === resourceId);
+                        if (resource) {
+                            resolve({ resource, categoryId });
+                            return;
+                        }
+                    }
+                    
+                    // Check resources in subcategories
+                    if (categoryData.subcategories) {
+                        for (const subcategory of categoryData.subcategories) {
+                            if (subcategory.resources) {
+                                const resource = subcategory.resources.find(r => r.id === resourceId);
+                                if (resource) {
+                                    resolve({ resource, categoryId, subcategoryId: subcategory.id });
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Resource not found
+                resolve(null);
+            })
+            .catch(error => {
+                reject(error);
+            });
+    });
+}
+
+// ===== Keyboard Navigation =====
+function initKeyboardNavigation() {
+    document.addEventListener('keydown', (e) => {
+        // Skip if inside input field
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+        
+        // Navigation shortcuts
+        switch (e.key) {
+            case '/': // Open search
+                e.preventDefault();
+                document.getElementById('search-input').focus();
+                break;
+                
+            case 'Escape': // Already handled in modal close
+                // Close sidebar on mobile if open
+                if (window.innerWidth < 992) {
+                    const sidebar = document.querySelector('.sidebar');
+                    if (sidebar?.classList.contains('active')) {
+                        sidebar.classList.remove('active');
+                        document.querySelector('.sidebar-overlay')?.classList.remove('active');
+                    }
+                }
+                break;
+                
+            case 'ArrowLeft': // Previous slide in active slider
+                e.preventDefault();
+                const prevButtons = document.querySelectorAll('.slider-control.prev');
+                prevButtons.forEach(button => {
+                    const sliderId = button.dataset.slider;
+                    const slider = document.querySelector(`.resources-slider[data-slider="${sliderId}"]`);
+                    if (slider && isElementInViewport(slider)) {
+                        button.click();
+                    }
+                });
+                break;
+                
+            case 'ArrowRight': // Next slide in active slider
+                e.preventDefault();
+                const nextButtons = document.querySelectorAll('.slider-control.next');
+                nextButtons.forEach(button => {
+                    const sliderId = button.dataset.slider;
+                    const slider = document.querySelector(`.resources-slider[data-slider="${sliderId}"]`);
+                    if (slider && isElementInViewport(slider)) {
+                        button.click();
+                    }
+                });
+                break;
+                
+            case 'Home': // Go to home page
+                e.preventDefault();
+                resetToHomePage();
+                break;
+        }
+    });
+    
+    // Helper to check if element is in viewport
+    function isElementInViewport(el) {
+        const rect = el.getBoundingClientRect();
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        );
+    }
+}
+
+// ===== Recently Viewed Resources =====
+function initRecentlyViewed() {
+    // Create a recently viewed section if it doesn't exist
+    if (!document.getElementById('recently-viewed-section')) {
+        // Create the section after we're sure data has loaded
+        window.addEventListener('dataLoaded', () => {
+            createRecentlyViewedSection();
+            updateRecentlyViewedList();
+        });
+    }
+}
+
+function createRecentlyViewedSection() {
+    // Create section only on home page
+    const mainContent = document.querySelector('.main-content');
+    const recentSection = document.querySelector('.recent-section');
+    
+    if (mainContent && recentSection) {
+        const recentlyViewedSection = document.createElement('section');
+        recentlyViewedSection.id = 'recently-viewed-section';
+        recentlyViewedSection.className = 'recently-viewed-section';
+        recentlyViewedSection.innerHTML = `
+            <div class="section-header-container">
+                <h2 class="section-header fade-in">Visualizados recentemente</h2>
+                <div class="slider-controls">
+                    <button class="slider-control prev" data-slider="recently-viewed" aria-label="Anterior">
+                        <img src="assets/icons/icon-chevron-left.svg" alt="Anterior">
+                    </button>
+                    <button class="slider-control next" data-slider="recently-viewed" aria-label="Próximo">
+                        <img src="assets/icons/icon-chevron-right.svg" alt="Próximo">
+                    </button>
+                </div>
+            </div>
+            
+            <div class="slider-container">
+                <div id="recently-viewed-resources" class="resources-slider" data-slider="recently-viewed">
+                    <div class="slider-track">
+                        <!-- Os recursos visualizados recentemente serão inseridos aqui -->
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        mainContent.insertBefore(recentlyViewedSection, recentSection.nextSibling);
+        
+        // Initialize slider controls
+        initSliders();
+    }
+}
+
+function trackResourceView(resource) {
+    // Get existing views from localStorage
+    let recentlyViewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+    
+    // Remove the resource if it already exists (to avoid duplicates)
+    recentlyViewed = recentlyViewed.filter(item => item.id !== resource.id);
+    
+    // Add the resource to the beginning of the array
+    recentlyViewed.unshift({
+        id: resource.id,
+        title: resource.title,
+        category: resource.category,
+        url: resource.url,
+        description: resource.description,
+        tags: resource.tags,
+        timestamp: Date.now()
+    });
+    
+    // Keep only the last 10 items
+    if (recentlyViewed.length > 10) {
+        recentlyViewed = recentlyViewed.slice(0, 10);
+    }
+    
+    // Save back to localStorage
+    localStorage.setItem('recentlyViewed', JSON.stringify(recentlyViewed));
+    
+    // Update the recently viewed list if on home page
+    if (document.getElementById('recently-viewed-resources')) {
+        updateRecentlyViewedList();
+    }
+}
+
+function updateRecentlyViewedList() {
+    const recentlyViewedContainer = document.getElementById('recently-viewed-resources');
+    if (!recentlyViewedContainer) return;
+    
+    const sliderTrack = recentlyViewedContainer.querySelector('.slider-track');
+    if (!sliderTrack) return;
+    
+    // Get recently viewed resources from localStorage
+    const recentlyViewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+    
+    // Clear existing items
+    sliderTrack.innerHTML = '';
+    
+    // Hide section if no recently viewed items
+    const section = document.getElementById('recently-viewed-section');
+    
+    if (recentlyViewed.length === 0) {
+        if (section) section.style.display = 'none';
+        return;
+    } else {
+        if (section) section.style.display = 'block';
+    }
+    
+    // Add each resource to the slider
+    recentlyViewed.forEach(resource => {
+        const resourceElement = createResourceItem(resource);
+        sliderTrack.appendChild(resourceElement);
+    });
+}
+
+// ===== Mobile Navigation =====
+function initMobileNavigation() {
+    // Check if we're on mobile (could be called on resize events too)
+    const isMobile = window.innerWidth < 768;
+    
+    // Only create mobile navigation if we're on a small screen and it doesn't already exist
+    if (isMobile && !document.getElementById('mobile-nav')) {
+        createMobileNavBar();
+    }
+    
+    // Toggle mobile navigation visibility
+    if (document.getElementById('mobile-nav')) {
+        const mobileNav = document.getElementById('mobile-nav');
+        if (isMobile) {
+            mobileNav.classList.add('active');
+        } else {
+            mobileNav.classList.remove('active');
+        }
+    }
+}
+
+function createMobileNavBar() {
+    // Create the mobile navigation bar
+    const mobileNav = document.createElement('nav');
+    mobileNav.id = 'mobile-nav';
+    mobileNav.className = 'mobile-nav';
+    
+    // Add navigation items
+    mobileNav.innerHTML = `
+        <a href="#" class="mobile-nav-item home-link" aria-label="Início">
+            <img src="assets/icons/icon-home.svg" alt="Início">
+            <span>Início</span>
+        </a>
+        <a href="#" class="mobile-nav-item search-link" aria-label="Buscar">
+            <img src="assets/icons/icon-search.svg" alt="Buscar">
+            <span>Buscar</span>
+        </a>
+        <a href="#" class="mobile-nav-item categories-link" aria-label="Categorias">
+            <img src="assets/icons/icon-category.svg" alt="Categorias">
+            <span>Categorias</span>
+        </a>
+        <a href="#" class="mobile-nav-item saved-link" aria-label="Salvos">
+            <img src="assets/icons/icon-heart.svg" alt="Salvos">
+            <span>Salvos</span>
+        </a>
+        <a href="#" class="mobile-nav-item recent-link" aria-label="Recentes">
+            <img src="assets/icons/icon-clock.svg" alt="Recentes">
+            <span>Recentes</span>
+        </a>
+    `;
+    
+    // Add event listeners
+    const homeLink = mobileNav.querySelector('.home-link');
+    if (homeLink) {
+        homeLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            resetToHomePage();
+        });
+    }
+    
+    const searchLink = mobileNav.querySelector('.search-link');
+    if (searchLink) {
+        searchLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('search-input').focus();
+            // Scroll to top to see the search input
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+    
+    const categoriesLink = mobileNav.querySelector('.categories-link');
+    if (categoriesLink) {
+        categoriesLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Toggle sidebar on mobile
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarOverlay = document.querySelector('.sidebar-overlay');
+            if (sidebar && sidebarOverlay) {
+                sidebar.classList.toggle('active');
+                sidebarOverlay.classList.toggle('active');
+            }
+        });
+    }
+    
+    const savedLink = mobileNav.querySelector('.saved-link');
+    if (savedLink) {
+        savedLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showSavedResources();
+        });
+    }
+    
+    const recentLink = mobileNav.querySelector('.recent-link');
+    if (recentLink) {
+        recentLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showRecentlyViewedModal();
+        });
+    }
+    
+    // Add to the document
+    document.body.appendChild(mobileNav);
+    
+    // Add resize listener if not already added
+    if (!window.mobileNavResizeListenerAdded) {
+        window.addEventListener('resize', () => {
+            initMobileNavigation();
+        });
+        window.mobileNavResizeListenerAdded = true;
+    }
+}
+
+function showSavedResources() {
+    // Get saved resources from localStorage
+    let savedResources = [];
+    const resources = JSON.parse(localStorage.getItem('savedResources') || '[]');
+    
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.classList.add('saved-resources-content');
+    
+    if (resources.length === 0) {
+        modalContent.innerHTML = '<div class="no-results">Você ainda não salvou nenhum recurso.</div>';
+    } else {
+        const resourcesGrid = document.createElement('div');
+        resourcesGrid.classList.add('resource-grid');
+        
+        resources.forEach(resourceId => {
+            const resource = findResourceById(resourceId);
+            if (resource) {
+                const resourceElement = createResourceItem(resource);
+                resourcesGrid.appendChild(resourceElement);
+                savedResources.push(resource);
+            }
+        });
+        
+        modalContent.appendChild(resourcesGrid);
+    }
+    
+    openModal('Recursos Salvos', modalContent);
+}
+
+function showRecentlyViewedModal() {
+    // Get recently viewed resources from localStorage
+    const recentlyViewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+    
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.classList.add('recently-viewed-content');
+    
+    if (recentlyViewed.length === 0) {
+        modalContent.innerHTML = '<div class="no-results">Você ainda não visualizou nenhum recurso.</div>';
+    } else {
+        const resourcesGrid = document.createElement('div');
+        resourcesGrid.classList.add('resource-grid');
+        
+        recentlyViewed.forEach(resource => {
+            const resourceElement = createResourceItem(resource);
+            resourcesGrid.appendChild(resourceElement);
+        });
+        
+        modalContent.appendChild(resourcesGrid);
+    }
+    
+    openModal('Visualizados Recentemente', modalContent);
+}
+
+// ===== Saving Resources =====
+function initSaveResourceFeature() {
+    // Initialize saved resources in localStorage if not exists
+    if (!localStorage.getItem('savedResources')) {
+        localStorage.setItem('savedResources', JSON.stringify([]));
+    }
+    
+    // Initialize like counts if not exists
+    if (!localStorage.getItem('likeCounts')) {
+        localStorage.setItem('likeCounts', JSON.stringify({}));
+    }
+    
+    // Delegate event listener for save buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.save-button')) {
+            const saveButton = e.target.closest('.save-button');
+            const resourceItem = saveButton.closest('.resource-item');
+            const resourceId = resourceItem.dataset.id;
+            
+            if (resourceId) {
+                toggleSavedResource(resourceId, saveButton);
+                
+                // Update the saved resources section after toggling
+                loadSavedResourcesSection();
+            }
+        }
+    });
+    
+    // Event listeners for saved resources view
+    document.getElementById('viewAllLikedBtn')?.addEventListener('click', function() {
+        showAllSavedResources();
+    });
+    
+    document.getElementById('exploreResourcesBtn')?.addEventListener('click', function() {
+        resetToHomePage();
+    });
+}
+
+function toggleSavedResource(resourceId, buttonElement) {
+    const savedResources = JSON.parse(localStorage.getItem('savedResources') || '[]');
+    const likeCounts = JSON.parse(localStorage.getItem('likeCounts') || '{}');
+    
+    // Check if resource is already saved
+    const index = savedResources.indexOf(resourceId);
+    
+    if (index === -1) {
+        // Save resource
+        savedResources.push(resourceId);
+        
+        // Increment like count
+        likeCounts[resourceId] = (likeCounts[resourceId] || 0) + 1;
+        
+        // Update button state
+        buttonElement.classList.add('saved');
+        buttonElement.setAttribute('data-tooltip', 'Remove from saved');
+        
+        // Show toast
+        showToast('Resource saved!');
+    } else {
+        // Remove resource
+        savedResources.splice(index, 1);
+        
+        // Decrement like count
+        if (likeCounts[resourceId] > 0) {
+            likeCounts[resourceId]--;
+        }
+        
+        // Update button state
+        buttonElement.classList.remove('saved');
+        buttonElement.setAttribute('data-tooltip', 'Save for later');
+        
+        // Show toast
+        showToast('Resource removed from saved');
+    }
+    
+    // Save back to localStorage
+    localStorage.setItem('savedResources', JSON.stringify(savedResources));
+    localStorage.setItem('likeCounts', JSON.stringify(likeCounts));
+    
+    // Update all instances of this resource on the page
+    updateResourceLikeCount(resourceId, likeCounts[resourceId] || 0);
+}
+
+function updateResourceLikeCount(resourceId, count) {
+    // Update all instances of this resource on the page
+    const resourceItems = document.querySelectorAll(`.resource-item[data-id="${resourceId}"]`);
+    resourceItems.forEach(item => {
+        const likeCountElement = item.querySelector('.likes-number');
+        if (likeCountElement) {
+            likeCountElement.textContent = count;
+        }
+        
+        // Update save button state
+        const saveButton = item.querySelector('.save-button');
+        if (saveButton) {
+            updateSaveButtonState(resourceId, saveButton);
+        }
+    });
+}
+
+function updateSaveButtonState(resourceId, buttonElement) {
+    const savedResources = JSON.parse(localStorage.getItem('savedResources') || '[]');
+    const isSaved = savedResources.includes(resourceId);
+    
+    if (isSaved) {
+        buttonElement.classList.add('saved');
+        buttonElement.setAttribute('data-tooltip', 'Remove from saved');
+    } else {
+        buttonElement.classList.remove('saved');
+        buttonElement.setAttribute('data-tooltip', 'Save for later');
+    }
+}
+
+function loadSavedResourcesSection() {
+    const savedResources = JSON.parse(localStorage.getItem('savedResources') || '[]');
+    const likedSection = document.getElementById('likedCardsSection');
+    const likedContainer = document.getElementById('likedCardsContainer');
+    const emptyState = document.getElementById('emptyLikedState');
+    
+    // If these elements don't exist, we're not on the homepage
+    if (!likedSection || !likedContainer || !emptyState) return;
+    
+    // Clear container
+    likedContainer.innerHTML = '';
+    
+    // If no saved resources, show empty state
+    if (savedResources.length === 0) {
+        likedSection.style.display = 'block';
+        likedContainer.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+    }
+    
+    // Get the saved resources data
+    const savedResourcesData = [];
+    const allCategories = ['design', 'typography', 'tools', 'ai', '3d'];
+    
+    // Look through all categories to find saved resources
+    allCategories.forEach(categoryId => {
+        const categoryData = getCategoryData(categoryId);
+        if (!categoryData || !categoryData.subcategories) return;
+        
+        categoryData.subcategories.forEach(subcategory => {
+            if (!subcategory.items) return;
+            
+            subcategory.items.forEach(item => {
+                // Use a generated ID based on URL (as it's unique)
+                const resourceId = btoa(item.url).replace(/=/g, '');
+                
+                if (savedResources.includes(resourceId)) {
+                    // Add category info to the resource
+                    const resourceWithCategory = {
+                        ...item,
+                        id: resourceId,
+                        categoryId: categoryId
+                    };
+                    savedResourcesData.push(resourceWithCategory);
+                }
+            });
+        });
+    });
+    
+    // Display up to 6 saved resources
+    const resourcesToShow = savedResourcesData.slice(0, 6);
+    
+    if (resourcesToShow.length > 0) {
+        // Show the liked section and container, hide empty state
+        likedSection.style.display = 'block';
+        likedContainer.style.display = 'grid';
+        emptyState.style.display = 'none';
+        
+        // Create resource items
+        resourcesToShow.forEach(resource => {
+            const resourceItem = createResourceItem(resource);
+            likedContainer.appendChild(resourceItem);
+        });
+    }
+}
+
+function showAllSavedResources() {
+    // Clear main content
+    const mainContent = document.querySelector('.main-content');
+    mainContent.innerHTML = '';
+    
+    // Create saved resources view
+    const savedView = document.createElement('div');
+    savedView.className = 'saved-resources-content';
+    
+    // Create breadcrumb
+    const breadcrumbItems = [
+        { text: 'Home', url: '#' },
+        { text: 'Saved Resources', url: null }
+    ];
+    const breadcrumb = createBreadcrumb(breadcrumbItems);
+    savedView.appendChild(breadcrumb);
+    
+    // Create content header
+    const header = document.createElement('h1');
+    header.className = 'category-title';
+    header.textContent = 'Saved Resources';
+    savedView.appendChild(header);
+    
+    // Get saved resources
+    const savedResources = JSON.parse(localStorage.getItem('savedResources') || '[]');
+    
+    if (savedResources.length === 0) {
+        // Create empty state
+        const emptyState = document.createElement('div');
+        emptyState.className = 'empty-liked-state';
+        emptyState.innerHTML = `
+            <img src="assets/icons/icon-heart.svg" alt="No saved resources">
+            <h3>No saved resources yet</h3>
+            <p>Items you save will appear here for easy access</p>
+            <button class="btn-primary" id="exploreResourcesBtn">Explore resources</button>
+        `;
+        savedView.appendChild(emptyState);
+        
+        // Add event listener to explore button
+        setTimeout(() => {
+            document.getElementById('exploreResourcesBtn')?.addEventListener('click', resetToHomePage);
+        }, 0);
+    } else {
+        // Create resources grid
+        const resourcesGrid = document.createElement('div');
+        resourcesGrid.className = 'resource-grid';
+        
+        // Get saved resources data
+        const savedResourcesData = [];
+        const allCategories = ['design', 'typography', 'tools', 'ai', '3d'];
+        
+        allCategories.forEach(categoryId => {
+            const categoryData = getCategoryData(categoryId);
+            if (!categoryData || !categoryData.subcategories) return;
+            
+            categoryData.subcategories.forEach(subcategory => {
+                if (!subcategory.items) return;
+                
+                subcategory.items.forEach(item => {
+                    // Use a generated ID based on URL (as it's unique)
+                    const resourceId = btoa(item.url).replace(/=/g, '');
+                    
+                    if (savedResources.includes(resourceId)) {
+                        // Add category info to the resource
+                        const resourceWithCategory = {
+                            ...item,
+                            id: resourceId,
+                            categoryId: categoryId
+                        };
+                        savedResourcesData.push(resourceWithCategory);
+                    }
+                });
+            });
+        });
+        
+        // Create resource items
+        savedResourcesData.forEach(resource => {
+            const resourceItem = createResourceItem(resource);
+            resourcesGrid.appendChild(resourceItem);
+        });
+        
+        savedView.appendChild(resourcesGrid);
+    }
+    
+    // Add to main content
+    mainContent.appendChild(savedView);
+    
+    // Update page title
+    updatePageTitle('Saved Resources | Mindy®');
+    
+    // Set the current page
+    window.history.pushState({ page: 'saved' }, '', '#saved');
+}
+
+// === Collapsible Sidebar Implementation ===
+function initCollapsibleSidebar() {
+    // Add collapse button to sidebar
+    const sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return;
+    
+    const sidebarHeader = sidebar.querySelector('.sidebar-header');
+    
+    const collapseButton = document.createElement('button');
+    collapseButton.className = 'collapse-sidebar-btn';
+    collapseButton.innerHTML = '<span class="collapse-icon"></span>';
+    collapseButton.setAttribute('aria-label', 'Collapse sidebar');
+    collapseButton.setAttribute('data-tooltip', 'Collapse sidebar');
+    
+    if (sidebarHeader) {
+        sidebarHeader.appendChild(collapseButton);
+    } else {
+        sidebar.insertBefore(collapseButton, sidebar.firstChild);
+    }
+    
+    // Check if sidebar is collapsed in localStorage
+    const isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (isSidebarCollapsed) {
+        sidebar.classList.add('collapsed');
+        document.body.classList.add('sidebar-collapsed');
+        collapseButton.setAttribute('data-tooltip', 'Expand sidebar');
+    }
+    
+    // Add click event to toggle sidebar
+    collapseButton.addEventListener('click', function() {
+        toggleSidebar();
+    });
+}
+
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const collapseButton = document.querySelector('.collapse-sidebar-btn');
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    
+    if (isCollapsed) {
+        // Expand sidebar
+        sidebar.classList.remove('collapsed');
+        document.body.classList.remove('sidebar-collapsed');
+        mainContent.classList.remove('expanded');
+        if (collapseButton) {
+            collapseButton.setAttribute('data-tooltip', 'Collapse sidebar');
+        }
+    } else {
+        // Collapse sidebar
+        sidebar.classList.add('collapsed');
+        document.body.classList.add('sidebar-collapsed');
+        mainContent.classList.add('expanded');
+        if (collapseButton) {
+            collapseButton.setAttribute('data-tooltip', 'Expand sidebar');
+        }
+    }
+    
+    // Save the state
+    localStorage.setItem('sidebarCollapsed', isCollapsed ? 'false' : 'true');
+    
+    // Update any sliders that might be affected by the layout change
+    updateSliderControls('popular');
+    updateSliderControls('recent');
+}
+
+// ----- SUPABASE INTEGRATION -----
+// Add these functions at the end of your main.js file
+
+// Show admin panel when user presses Ctrl+Shift+A
+document.addEventListener('keydown', function(event) {
+    if (event.ctrlKey && event.shiftKey && event.key === 'A') {
+        toggleAdminPanel();
+    }
+});
+
+function toggleAdminPanel() {
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel.style.display === 'none') {
+        adminPanel.style.display = 'block';
+        loadSupabaseConfig();
+    } else {
+        adminPanel.style.display = 'none';
+    }
+}
+
+/**
+ * Initialize admin panel with keyboard shortcut
+ */
+function initAdminPanel() {
+    // Add keyboard shortcut (Ctrl+Shift+A) to toggle admin panel
+    document.addEventListener('keydown', function(event) {
+        // Check if Ctrl+Shift+A was pressed
+        if (event.ctrlKey && event.shiftKey && event.key === 'A') {
+            event.preventDefault();
+            toggleAdminPanel();
+        }
+    });
+}
+
+function loadSupabaseConfig() {
+    const supabaseUrl = localStorage.getItem('supabaseUrl') || '';
+    const supabaseKey = localStorage.getItem('supabaseKey') || '';
+    
+    document.getElementById('supabaseUrl').value = supabaseUrl;
+    document.getElementById('supabaseKey').value = supabaseKey;
+}
+
+// Function to handle resource preview (simplified to just open in new tab)
+function showResourcePreview(resource) {
+    if (resource && resource.url) {
+        window.open(resource.url, '_blank', 'noopener,noreferrer');
+        trackResourceView(resource);
+        showToast(`Abrindo recurso: ${resource.title}`, 'info');
+    } else {
+        showToast('Não foi possível abrir o recurso. URL inválida.', 'error');
+    }
+}
+
+function filterCategoryResources(categoryId, filter, categoryPage) {
+    const resourcesGrid = categoryPage.querySelector('.category-resources-grid');
+    const emptyResourcesMessage = categoryPage.querySelector('.empty-resources');
+    
+    if (!resourcesGrid) return;
+    
+    // Get all resource items
+    const resourceItems = resourcesGrid.querySelectorAll('.resource-item');
+    let visibleCount = 0;
+    
+    resourceItems.forEach(item => {
+        let shouldShow = false;
+        
+        switch (filter) {
+            case 'all':
+                shouldShow = true;
+                break;
+            case 'popular':
+                // Show items with 5 or more likes
+                const likeCount = parseInt(item.querySelector('.likes-number')?.textContent || '0');
+                shouldShow = likeCount >= 5;
+                break;
+            case 'recent':
+                // Show items added in the last 30 days
+                // This is a placeholder - in a real app, you'd check the date
+                // For demo purposes, we'll show 1/3 of the items randomly
+                shouldShow = Math.random() > 0.66;
+                break;
+            case 'free':
+                // Show items that are free
+                // This is a placeholder - in a real app, you'd check a "free" property
+                // For demo purposes, we'll show 1/2 of the items randomly
+                shouldShow = Math.random() > 0.5;
+                break;
+        }
+        
+        if (shouldShow) {
+            item.style.display = '';
+            visibleCount++;
+            
+            // Add a staggered animation
+            item.style.animationDelay = `${0.05 * visibleCount}s`;
+            item.classList.add('fade-in-scale');
+            
+            // Remove the animation class after it completes to allow re-animation
+            setTimeout(() => {
+                item.classList.remove('fade-in-scale');
+            }, 500 + (0.05 * visibleCount * 1000));
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    // Show/hide empty state message
+    if (emptyResourcesMessage) {
+        if (visibleCount === 0) {
+            emptyResourcesMessage.style.display = 'flex';
+        } else {
+            emptyResourcesMessage.style.display = 'none';
+        }
+    }
+}

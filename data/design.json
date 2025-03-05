@@ -9,6 +9,12 @@
       "title": "UI/UX",
       "items": [
         {
+          "title": "Figma Tutorials",
+          "description": "Learn Figma from scratch",
+          "url": "https://figmatutorials.com",
+          "tags": ["figma", "tutorial", "design"]
+        },
+        {
           "title": "Material Design",
           "description": "Sistema de design do Google com diretrizes completas para criar interfaces modernas e acessíveis.",
           "url": "https://m3.material.io/",

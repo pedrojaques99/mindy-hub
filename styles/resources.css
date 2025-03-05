@@ -1,0 +1,229 @@
+/* Resource Cards and Thumbnails */
+.resources-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.popular-resources,
+.recent-resources {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+  margin: 15px 0;
+}
+
+.resource-card {
+  background-color: #262626;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.resource-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.resource-thumb {
+  position: relative;
+  padding-top: 56.25%; /* 16:9 aspect ratio */
+  background-color: #1a1a1a;
+  overflow: hidden;
+}
+
+.resource-thumb-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.resource-card:hover .resource-thumb-img {
+  transform: scale(1.05);
+}
+
+.resource-details {
+  padding: 15px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.resource-title {
+  font-size: 1rem;
+  margin: 0 0 8px 0;
+  color: #fff;
+  font-weight: 500;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.resource-description {
+  font-size: 0.875rem;
+  color: #aaa;
+  margin: 0 0 12px 0;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.resource-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: auto;
+}
+
+.resource-type {
+  background-color: #333;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.resource-rating {
+  padding: 3px 8px;
+  color: #ffc107;
+}
+
+/* Resource type specific styles */
+.resource-card[data-type="video"] .resource-type {
+  background-color: #f44336;
+  color: white;
+}
+
+.resource-card[data-type="pdf"] .resource-type {
+  background-color: #e91e63;
+  color: white;
+}
+
+.resource-card[data-type="document"] .resource-type {
+  background-color: #2196f3;
+  color: white;
+}
+
+.resource-card[data-type="website"] .resource-type {
+  background-color: #4caf50;
+  color: white;
+}
+
+.resource-card[data-type="tool"] .resource-type {
+  background-color: #ff9800;
+  color: white;
+}
+
+.resource-card[data-type="image"] .resource-type {
+  background-color: #9c27b0;
+  color: white;
+}
+
+/* Resource preview in modal */
+.resource-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.resource-info {
+  background-color: #1a1a1a;
+  border-radius: 6px;
+  padding: 15px;
+}
+
+.resource-info p {
+  margin: 6px 0;
+}
+
+.resource-info a {
+  color: #8ced39;
+  text-decoration: none;
+}
+
+.resource-info a:hover {
+  text-decoration: underline;
+}
+
+.video-embed {
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #000;
+  position: relative;
+  padding-top: 56.25%; /* 16:9 aspect ratio */
+}
+
+.video-embed iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Placeholder loading animation */
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.resource-card.loading .resource-thumb {
+  background: linear-gradient(to right, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%);
+  background-size: 800px 104px;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.resource-card.loading .resource-title,
+.resource-card.loading .resource-description {
+  background: linear-gradient(to right, #2a2a2a 8%, #3a3a3a 18%, #2a2a2a 33%);
+  background-size: 800px 104px;
+  animation: shimmer 1.5s infinite linear;
+  color: transparent;
+  border-radius: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .resources-container,
+  .popular-resources,
+  .recent-resources {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  
+  .resource-title {
+    font-size: 0.9rem;
+  }
+  
+  .resource-description {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .resources-container,
+  .popular-resources,
+  .recent-resources {
+    grid-template-columns: 1fr;
+  }
+} 

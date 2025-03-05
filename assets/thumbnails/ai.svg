@@ -1,0 +1,10 @@
+<svg width="400" height="225" viewBox="0 0 400 225" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="225" fill="#2A2A2A"/>
+  <rect x="50" y="50" width="300" height="125" rx="8" fill="#5878FF" opacity="0.2"/>
+  <path d="M150 112.5H250" stroke="#5878FF" stroke-width="4" stroke-linecap="round"/>
+  <path d="M200 62.5V162.5" stroke="#5878FF" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="200" cy="112.5" r="30" stroke="#5878FF" stroke-width="4"/>
+  <circle cx="170" cy="92.5" r="5" fill="#5878FF"/>
+  <circle cx="230" cy="132.5" r="5" fill="#5878FF"/>
+  <text x="200" y="180" font-family="Arial, sans-serif" font-size="16" fill="#5878FF" text-anchor="middle">AI Resources</text>
+</svg> 

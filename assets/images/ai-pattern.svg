@@ -1,0 +1,45 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="ai-pattern" patternUnits="userSpaceOnUse" width="100" height="100">
+      <rect width="100" height="100" fill="none"/>
+      
+      <!-- Neural network nodes and connections -->
+      <circle cx="20" cy="20" r="3" fill="#6C63FF" opacity="0.5"/>
+      <circle cx="50" cy="10" r="2" fill="#6C63FF" opacity="0.4"/>
+      <circle cx="80" cy="20" r="2.5" fill="#6C63FF" opacity="0.5"/>
+      
+      <circle cx="10" cy="50" r="2" fill="#6C63FF" opacity="0.4"/>
+      <circle cx="35" cy="45" r="3" fill="#6C63FF" opacity="0.5"/>
+      <circle cx="65" cy="45" r="2.5" fill="#6C63FF" opacity="0.4"/>
+      <circle cx="90" cy="50" r="2" fill="#6C63FF" opacity="0.5"/>
+      
+      <circle cx="20" cy="80" r="3" fill="#6C63FF" opacity="0.4"/>
+      <circle cx="50" cy="90" r="2" fill="#6C63FF" opacity="0.5"/>
+      <circle cx="80" cy="80" r="2.5" fill="#6C63FF" opacity="0.4"/>
+      
+      <!-- Neural network connections -->
+      <line x1="20" y1="20" x2="50" y2="10" stroke="#6C63FF" stroke-width="0.5" opacity="0.3"/>
+      <line x1="20" y1="20" x2="80" y2="20" stroke="#6C63FF" stroke-width="0.5" opacity="0.3"/>
+      <line x1="50" y1="10" x2="80" y2="20" stroke="#6C63FF" stroke-width="0.5" opacity="0.3"/>
+      
+      <line x1="10" y1="50" x2="35" y2="45" stroke="#6C63FF" stroke-width="0.5" opacity="0.3"/>
+      <line x1="35" y1="45" x2="65" y2="45" stroke="#6C63FF" stroke-width="0.5" opacity="0.3"/>
+      <line x1="65" y1="45" x2="90" y2="50" stroke="#6C63FF" stroke-width="0.5" opacity="0.3"/>
+      
+      <line x1="20" y1="80" x2="50" y2="90" stroke="#6C63FF" stroke-width="0.5" opacity="0.3"/>
+      <line x1="50" y1="90" x2="80" y2="80" stroke="#6C63FF" stroke-width="0.5" opacity="0.3"/>
+      
+      <line x1="20" y1="20" x2="35" y2="45" stroke="#6C63FF" stroke-width="0.5" opacity="0.3"/>
+      <line x1="80" y1="20" x2="65" y2="45" stroke="#6C63FF" stroke-width="0.5" opacity="0.3"/>
+      <line x1="35" y1="45" x2="20" y2="80" stroke="#6C63FF" stroke-width="0.5" opacity="0.3"/>
+      <line x1="65" y1="45" x2="80" y2="80" stroke="#6C63FF" stroke-width="0.5" opacity="0.3"/>
+      
+      <!-- Binary code bits -->
+      <text x="15" y="35" font-family="monospace" font-size="4" fill="#6C63FF" opacity="0.3">01</text>
+      <text x="75" y="35" font-family="monospace" font-size="4" fill="#6C63FF" opacity="0.3">10</text>
+      <text x="25" y="65" font-family="monospace" font-size="4" fill="#6C63FF" opacity="0.3">11</text>
+      <text x="75" y="65" font-family="monospace" font-size="4" fill="#6C63FF" opacity="0.3">00</text>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#ai-pattern)"/>
+</svg> 

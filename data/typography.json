@@ -5,6 +5,18 @@
   "description": "Explore recursos e ferramentas para tipografia, fontes e design textual.",
   "subcategories": [
     {
+      "id": "fonts",
+      "title": "Fonts",
+      "items": [
+        {
+          "title": "Google Fonts",
+          "description": "Free web fonts",
+          "url": "https://fonts.google.com",
+          "tags": ["fonts", "free", "typography"]
+        }
+      ]
+    },
+    {
       "id": "google-fonts",
       "title": "Google Fonts",
       "items": [

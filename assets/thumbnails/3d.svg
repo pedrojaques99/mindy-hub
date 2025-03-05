@@ -1,0 +1,8 @@
+<svg width="400" height="225" viewBox="0 0 400 225" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="225" fill="#2A2A2A"/>
+  <rect x="50" y="50" width="300" height="125" rx="8" fill="#FF58F8" opacity="0.2"/>
+  <path d="M200 82.5L240 102.5V142.5L200 162.5L160 142.5V102.5L200 82.5Z" stroke="#FF58F8" stroke-width="4"/>
+  <path d="M200 82.5V162.5" stroke="#FF58F8" stroke-width="4"/>
+  <path d="M160 102.5L200 122.5L240 102.5" stroke="#FF58F8" stroke-width="4"/>
+  <text x="200" y="180" font-family="Arial, sans-serif" font-size="16" fill="#FF58F8" text-anchor="middle">3D Resources</text>
+</svg> 

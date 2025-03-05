@@ -1,0 +1,8 @@
+<svg width="400" height="225" viewBox="0 0 400 225" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="225" fill="#2A2A2A"/>
+  <rect x="50" y="50" width="300" height="125" rx="8" fill="#FF5858" opacity="0.2"/>
+  <circle cx="200" cy="112.5" r="50" stroke="#FF5858" stroke-width="4"/>
+  <rect x="175" y="87.5" width="50" height="50" stroke="#FF5858" stroke-width="4"/>
+  <path d="M150 137.5L250 87.5" stroke="#FF5858" stroke-width="4" stroke-linecap="round"/>
+  <text x="200" y="180" font-family="Arial, sans-serif" font-size="16" fill="#FF5858" text-anchor="middle">Design Resources</text>
+</svg> 

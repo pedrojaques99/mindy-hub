@@ -1,0 +1,8 @@
+<svg width="400" height="225" viewBox="0 0 400 225" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="225" fill="#2A2A2A"/>
+  <rect x="50" y="50" width="300" height="125" rx="8" fill="#58FFB8" opacity="0.2"/>
+  <path d="M160 112.5C160 95.4315 173.431 82 190.5 82H209.5C226.569 82 240 95.4315 240 112.5C240 129.569 226.569 143 209.5 143H190.5C173.431 143 160 129.569 160 112.5Z" stroke="#58FFB8" stroke-width="4"/>
+  <path d="M190 92L210 133" stroke="#58FFB8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M210 92L190 133" stroke="#58FFB8" stroke-width="4" stroke-linecap="round"/>
+  <text x="200" y="180" font-family="Arial, sans-serif" font-size="16" fill="#58FFB8" text-anchor="middle">Tools Resources</text>
+</svg> 

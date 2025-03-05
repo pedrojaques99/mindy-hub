@@ -1,0 +1,1337 @@
+/**
+ * Mindy® - CSS Fixes
+ * This file contains fixes for various issues
+ */
+
+/* Hide resource preview overlay completely */
+.resource-preview-overlay {
+    display: none !important;
+}
+
+/* Hide preview buttons on resource cards */
+.resource-preview-button {
+    display: none !important;
+}
+
+/* Hide preview buttons in modal */
+.resource-preview-button-header {
+    display: none !important;
+}
+
+/* Fix for resource cards - make them clickable directly to the resource */
+.resource-item {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.resource-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Improve thumbnail display for live previews */
+.resource-thumbnail {
+    position: relative;
+    margin: -1.25rem -1.25rem 0.75rem;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    background-color: var(--dark-surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.thumbnail-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+/* Fallback icon when thumbnail fails to load */
+.thumbnail-fallback-icon {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.7);
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Make sure links work properly */
+.resource-link {
+    position: relative;
+    z-index: 10;
+}
+
+/* Make sure action buttons work properly */
+.resource-actions-top button {
+    position: relative;
+    z-index: 10;
+}
+
+/* Improve SVG icon display */
+.share-icon {
+    width: 18px;
+    height: 18px;
+    filter: brightness(0) saturate(100%) invert(100%);
+    transition: transform 0.2s ease;
+}
+
+.share-button:hover .share-icon {
+    transform: scale(1.2);
+}
+
+/* Fix the tag styling for better UX */
+.resource-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.resource-tags .tag {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.resource-tags .tag:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: var(--text-primary);
+    transform: translateY(-2px);
+}
+
+.resource-tags .tag:active {
+    transform: translateY(0);
+}
+
+.resource-tags .tag:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Add visual indicator that tags are clickable */
+.resource-tags .tag::before {
+    content: '#';
+    opacity: 0.6;
+    margin-right: 2px;
+    font-weight: bold;
+}
+
+/* Animation for share button when clicked */
+@keyframes pulse-share {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.share-button.shared {
+    animation: pulse-share 0.5s ease;
+    background-color: rgba(var(--primary-rgb), 0.3);
+}
+
+.share-button.shared .share-icon {
+    transform: scale(1.2);
+}
+
+/* Fix the hardcoded category color for resource items */
+.resource-item::after {
+    background-color: var(--cat-design) !important;
+}
+
+/* Category-specific colors for resource items */
+.resource-item[data-category="design"]::after {
+    background-color: var(--cat-design) !important;
+}
+
+.resource-item[data-category="typography"]::after {
+    background-color: var(--cat-typography) !important;
+}
+
+.resource-item[data-category="tools"]::after {
+    background-color: #3498db !important;
+}
+
+.resource-item[data-category="ai"]::after {
+    background-color: var(--cat-ai) !important;
+}
+
+.resource-item[data-category="3d"]::after {
+    background-color: var(--cat-3d) !important;
+}
+
+/* Make all category icons use the same color (white) */
+img[src*="icon-design"],
+img[src*="icon-typography"],
+img[src*="icon-tools"],
+img[src*="icon-ai"],
+img[src*="icon-3d"],
+.category-page[data-category] img[src*="icon-"],
+.bento-item[data-category] .bento-icon,
+.resource-category-icon,
+.subcategory-icon {
+    filter: brightness(0) saturate(100%) invert(100%) !important;
+}
+
+/* ===== SUBCATEGORIES SECTION REDESIGN ===== */
+
+/* Subcategories section container */
+.subcategories-section {
+    margin: var(--space-8) 0;
+    position: relative;
+}
+
+/* Add a subtle background pattern to the section */
+.subcategories-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(var(--dark-surface-3) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.1;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Section header with accent line */
+.subcategories-section .section-header {
+    position: relative;
+    margin-bottom: var(--space-2);
+    display: inline-block;
+}
+
+.subcategories-section .section-header::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary) 0%, transparent 100%);
+    border-radius: var(--radius-full);
+}
+
+/* Section description */
+.subcategories-section .section-description {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-6);
+    max-width: 600px;
+}
+
+/* Modern grid layout for subcategories */
+.subcategories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-5);
+    margin-top: var(--space-4);
+}
+
+/* Redesigned subcategory cards */
+.subcategory-card {
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(145deg, var(--dark-surface-2), var(--dark-surface-3));
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    height: 100%;
+    min-height: 200px;
+}
+
+/* Category color indicator */
+.subcategory-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background-color: var(--cat-design);
+    opacity: 0.8;
+    transition: height 0.3s ease, opacity 0.3s ease;
+}
+
+/* Category-specific color indicators */
+.subcategory-card[data-category="design"]::before {
+    background-color: var(--cat-design);
+}
+
+.subcategory-card[data-category="typography"]::before {
+    background-color: var(--cat-typography);
+}
+
+.subcategory-card[data-category="tools"]::before {
+    background-color: #3498db;
+}
+
+.subcategory-card[data-category="ai"]::before {
+    background-color: var(--cat-ai);
+}
+
+.subcategory-card[data-category="3d"]::before {
+    background-color: var(--cat-3d);
+}
+
+/* Improved icon container */
+.subcategory-icon-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: var(--space-4);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+/* Icon styling */
+.subcategory-icon {
+    width: 24px;
+    height: 24px;
+    filter: brightness(0) saturate(100%) invert(100%) !important;
+    transition: transform 0.3s ease;
+}
+
+/* Content styling */
+.subcategory-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.subcategory-title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--space-2);
+    color: var(--text-primary);
+    transition: color 0.3s ease;
+}
+
+.subcategory-description {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-3);
+    flex-grow: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.subcategory-count {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-full);
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+}
+
+.subcategory-count::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background-color: var(--primary);
+    border-radius: 50%;
+    margin-right: var(--space-2);
+}
+
+/* Arrow styling */
+.subcategory-arrow {
+    position: absolute;
+    bottom: var(--space-4);
+    right: var(--space-4);
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+    opacity: 0.7;
+}
+
+.icon-arrow {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s ease;
+}
+
+/* Hover effects */
+.subcategory-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(145deg, var(--dark-surface-3), var(--dark-surface-4));
+}
+
+.subcategory-card:hover::before {
+    height: 6px;
+    opacity: 1;
+}
+
+.subcategory-card:hover .subcategory-title {
+    color: var(--primary);
+}
+
+.subcategory-card:hover .subcategory-icon {
+    transform: scale(1.2);
+}
+
+.subcategory-card:hover .subcategory-arrow {
+    background-color: var(--primary);
+    opacity: 1;
+}
+
+.subcategory-card:hover .icon-arrow {
+    transform: translateX(3px);
+    filter: brightness(0);
+}
+
+/* Focus styles for accessibility */
+.subcategory-card:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .subcategories-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: var(--space-4);
+    }
+    
+    .subcategory-card {
+        padding: var(--space-4);
+        min-height: 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .subcategories-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .subcategory-card {
+        flex-direction: row;
+        align-items: center;
+        min-height: auto;
+        padding: var(--space-4);
+    }
+    
+    .subcategory-icon-container {
+        margin-bottom: 0;
+        margin-right: var(--space-3);
+    }
+    
+    .subcategory-content {
+        margin-right: var(--space-6);
+    }
+    
+    .subcategory-arrow {
+        top: 50%;
+        transform: translateY(-50%);
+        bottom: auto;
+    }
+    
+    .subcategory-card:hover {
+        transform: translateX(8px);
+    }
+}
+
+/* Animation for subcategory cards */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-scale {
+    animation: fadeInUp 0.5s ease forwards;
+    opacity: 0;
+}
+
+/* Staggered animation for grid items */
+.stagger-fade-in > * {
+    animation: fadeInUp 0.5s ease forwards;
+    opacity: 0;
+}
+
+.stagger-fade-in > *:nth-child(1) { animation-delay: 0.1s; }
+.stagger-fade-in > *:nth-child(2) { animation-delay: 0.2s; }
+.stagger-fade-in > *:nth-child(3) { animation-delay: 0.3s; }
+.stagger-fade-in > *:nth-child(4) { animation-delay: 0.4s; }
+.stagger-fade-in > *:nth-child(5) { animation-delay: 0.5s; }
+.stagger-fade-in > *:nth-child(6) { animation-delay: 0.6s; }
+.stagger-fade-in > *:nth-child(7) { animation-delay: 0.7s; }
+.stagger-fade-in > *:nth-child(8) { animation-delay: 0.8s; }
+.stagger-fade-in > *:nth-child(n+9) { animation-delay: 0.9s; }
+
+/* Subtle pulse animation for subcategory icons */
+@keyframes subtlePulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.subcategory-card:hover .subcategory-icon {
+    animation: subtlePulse 1.5s ease infinite;
+}
+
+/* ===== RESOURCE SECTION REDESIGN ===== */
+
+/* Resources section container */
+.resources-section,
+.category-resources-section {
+    margin: var(--space-8) 0;
+    position: relative;
+}
+
+/* Add a subtle background pattern to the section */
+.resources-section::before,
+.category-resources-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.2;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Section header with accent line */
+.resources-section .section-header,
+.category-resources-section .section-header {
+    position: relative;
+    margin-bottom: var(--space-2);
+    display: inline-block;
+    font-size: var(--font-size-2xl);
+}
+
+.resources-section .section-header::after,
+.category-resources-section .section-header::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary) 0%, transparent 100%);
+    border-radius: var(--radius-full);
+}
+
+/* Section description */
+.resources-section .section-description,
+.category-resources-section .section-description {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-6);
+    max-width: 600px;
+}
+
+/* Modern grid layout for resources */
+.resource-grid,
+.category-resources-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-5);
+    margin-top: var(--space-6);
+}
+
+/* Resource filtering and sorting controls */
+.resource-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: var(--space-4) 0 var(--space-6);
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
+.resource-filter {
+    display: flex;
+    gap: var(--space-2);
+    overflow-x: auto;
+    padding-bottom: var(--space-2);
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.resource-filter::-webkit-scrollbar {
+    display: none;
+}
+
+.resource-filter-button {
+    background-color: var(--dark-surface-2);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    white-space: nowrap;
+}
+
+.resource-filter-button:hover {
+    background-color: var(--dark-surface-3);
+    color: var(--text-primary);
+}
+
+.resource-filter-button.active {
+    background-color: rgba(191, 255, 88, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.resource-filter-button img {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.resource-filter-button:hover img,
+.resource-filter-button.active img {
+    opacity: 1;
+}
+
+/* Redesigned resource cards */
+.resource-item {
+    background: linear-gradient(145deg, var(--dark-surface-2), var(--dark-surface));
+    border-radius: var(--radius-xl);
+    padding: var(--space-5);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Category color indicator */
+.resource-item::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background-color: var(--cat-design);
+    opacity: 0.8;
+    transition: height 0.3s ease, opacity 0.3s ease;
+}
+
+/* Category-specific color indicators */
+.resource-item[data-category="design"]::after {
+    background-color: var(--cat-design);
+}
+
+.resource-item[data-category="typography"]::after {
+    background-color: var(--cat-typography);
+}
+
+.resource-item[data-category="tools"]::after {
+    background-color: #3498db;
+}
+
+.resource-item[data-category="ai"]::after {
+    background-color: var(--cat-ai);
+}
+
+.resource-item[data-category="3d"]::after {
+    background-color: var(--cat-3d);
+}
+
+/* Resource header styling */
+.resource-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+}
+
+.resource-category {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-full);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.resource-category-icon {
+    width: 16px;
+    height: 16px;
+    filter: brightness(0) saturate(100%) invert(100%) !important;
+}
+
+/* Resource content styling */
+.resource-title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    margin: var(--space-3) 0;
+    color: var(--text-primary);
+    transition: color 0.3s ease;
+    line-height: 1.3;
+}
+
+.resource-description {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-4);
+    flex-grow: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.5;
+}
+
+/* Resource Tags Styles */
+.resource-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+}
+
+.category-view-options {
+    align-self: flex-end;
+}
+
+/* Animation classes */
+.fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.fade-out {
+    animation: fadeOut 0.5s ease forwards;
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* Resource actions styling */
+.resource-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding-top: var(--space-3);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.resource-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background-color: rgba(191, 255, 88, 0.1);
+    color: var(--primary);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.resource-link:hover {
+    background-color: rgba(191, 255, 88, 0.2);
+    transform: translateY(-2px);
+}
+
+.resource-link::after {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-image: url('../assets/icons/icon-arrow-right.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    transition: transform 0.2s ease;
+}
+
+.resource-link:hover::after {
+    transform: translateX(3px);
+}
+
+/* Resource actions top styling */
+.resource-actions-top {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.resource-actions-top button {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.resource-actions-top button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.resource-actions-top button img {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.2s ease;
+}
+
+.resource-actions-top button:hover img {
+    transform: scale(1.1);
+}
+
+/* Save button styling */
+.save-button.saved {
+    background-color: rgba(191, 255, 88, 0.1);
+}
+
+.save-button.saved img {
+    filter: brightness(0) saturate(100%) invert(84%) sepia(33%) saturate(636%) hue-rotate(37deg) brightness(104%) contrast(104%);
+}
+
+/* Like count styling */
+.like-count {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+}
+
+.like-count img {
+    width: 14px;
+    height: 14px;
+    opacity: 0.7;
+}
+
+/* Hover effects */
+.resource-item:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(145deg, var(--dark-surface-3), var(--dark-surface-2));
+}
+
+.resource-item:hover::after {
+    height: 6px;
+    opacity: 1;
+}
+
+.resource-item:hover .resource-title {
+    color: var(--primary);
+}
+
+/* Focus styles for accessibility */
+.resource-item:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Empty state styling */
+.empty-resources {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8) 0;
+    text-align: center;
+}
+
+.empty-resources img {
+    width: 80px;
+    height: 80px;
+    margin-bottom: var(--space-4);
+    opacity: 0.5;
+}
+
+.empty-resources h3 {
+    font-size: var(--font-size-xl);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+}
+
+.empty-resources p {
+    color: var(--text-secondary);
+    margin-bottom: var(--space-4);
+    max-width: 400px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .resource-grid,
+    .category-resources-grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: var(--space-4);
+    }
+    
+    .resource-controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .resource-filter {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .resource-grid,
+    .category-resources-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .resource-item {
+        padding: var(--space-4);
+    }
+}
+
+/* SIDEBAR IMPROVEMENTS */
+.sidebar {
+    background-color: var(--dark-surface);
+    border-right: 1px solid var(--border-color);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    height: 100%;
+    width: 280px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    transition: opacity 0.3s ease;
+}
+
+.collapse-sidebar-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.collapse-sidebar-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+.collapse-icon {
+    position: relative;
+    width: 16px;
+    height: 16px;
+}
+
+.collapse-icon:before {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-top: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+    transform: rotate(45deg);
+    top: 3px;
+    left: 1px;
+    transition: transform 0.3s ease;
+}
+
+.sidebar.collapsed .collapse-icon:before {
+    transform: rotate(225deg);
+}
+
+.sidebar.collapsed {
+    width: 70px;
+}
+
+.sidebar.collapsed .sidebar-title {
+    opacity: 0;
+}
+
+.category-group {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    position: relative;
+}
+
+.category-header:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.category-header::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 3px;
+    background-color: var(--primary);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.category-group.active .category-header::after {
+    opacity: 1;
+}
+
+.category-header:hover::after {
+    opacity: 0.5;
+}
+
+.category-icon {
+    width: 22px;
+    height: 22px;
+    margin-right: 16px;
+    transition: all 0.3s ease;
+    filter: brightness(0) saturate(100%) invert(70%);
+}
+
+.category-header:hover .category-icon {
+    filter: brightness(0) saturate(100%) invert(90%);
+    transform: scale(1.1);
+}
+
+.category-header span {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.category-header:hover span {
+    color: var(--text-primary);
+}
+
+.sidebar.collapsed .category-header {
+    justify-content: center;
+    padding: 16px 0;
+}
+
+.sidebar.collapsed .category-icon {
+    margin-right: 0;
+    width: 26px;
+    height: 26px;
+}
+
+.sidebar.collapsed .category-header span {
+    display: none;
+}
+
+.category-group.active .category-header {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.category-group.active .category-header span,
+.category-group.active .category-icon {
+    color: var(--text-primary);
+    filter: brightness(0) saturate(100%) invert(100%);
+}
+
+.subcategory-list {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s ease;
+}
+
+.category-group.active .subcategory-list {
+    max-height: 500px;
+}
+
+.subcategory {
+    padding: 10px 16px 10px 54px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.subcategory:hover,
+.subcategory.active {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+/* Show tooltips on collapsed sidebar */
+.sidebar.collapsed .category-header {
+    position: relative;
+}
+
+.sidebar.collapsed .category-header:after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 70px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: var(--dark-surface-2);
+    color: var(--text-primary);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar.collapsed .category-header:hover:after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Custom scrollbar for sidebar */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Main content adjustments */
+.main-content {
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-left: 0;
+    width: calc(100% - 280px);
+}
+
+body.sidebar-collapsed .main-content {
+    width: calc(100% - 70px);
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        width: 100%;
+    }
+    
+    body.sidebar-collapsed .main-content {
+        width: 100%;
+    }
+}
+
+/* Animated indicator for active category */
+@keyframes slideIn {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.category-group.active .category-header::after {
+    opacity: 1;
+    animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pulse animation for icons on hover */
+@keyframes subtle-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.category-header:hover .category-icon {
+    filter: brightness(0) saturate(100%) invert(90%);
+    animation: subtle-pulse 1s ease infinite;
+}
+
+/* Smoother transitions for all elements */
+.category-icon,
+.category-header span,
+.subcategory,
+.subcategory-list,
+.collapse-icon:before,
+.sidebar-title {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mobile sidebar adjustments */
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 280px !important; /* Override collapsed width */
+        transform: translateX(-100%);
+        z-index: 1000;
+        box-shadow: var(--shadow-lg);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    
+    .sidebar-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    /* Hide collapse button on mobile */
+    .sidebar .collapse-sidebar-btn {
+        display: none;
+    }
+    
+    .main-content {
+        width: 100%;
+        margin-left: 0;
+    }
+}
+
+/* Sidebar error styling */
+.sidebar-error {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 150px;
+    margin-top: 30px;
+}
+
+.sidebar-error p {
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    opacity: 0.8;
+}
+
+.refresh-button {
+    padding: 8px 16px;
+    background: var(--primary);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.2s ease;
+}
+
+.refresh-button:hover {
+    background-color: var(--primary-dark, #1e40af);
+} 
